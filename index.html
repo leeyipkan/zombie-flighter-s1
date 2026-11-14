@@ -1,0 +1,2492 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>屍潮餘燼 · DEAD BLOCK</title>
+<style>
+:root{
+  --bg:#08090b; --panel:#121519; --panel2:#0e1114; --line:#262b32; --line2:#323842;
+  --text:#ddd8cc; --dim:#8d8f95; --amber:#e0a13c; --green:#83c46c; --red:#d96655;
+  --blue:#6f9fd0; --teal:#5fb1b0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+*{transition:none!important;animation:none!important;}
+html,body{height:100%;}
+body{
+  background:radial-gradient(1100px 700px at 35% -10%,#181c21 0%,#0a0c0f 55%,#08090b 100%);
+  color:var(--text);
+  font:14px/1.45 "Segoe UI","Microsoft JhengHei","Microsoft YaHei","PingFang TC",system-ui,sans-serif;
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+#app{display:flex;flex-direction:column;height:100vh;min-height:560px;}
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:9px 16px;border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,rgba(20,23,27,.92),rgba(10,12,15,.55));
+  flex:0 0 auto;
+}
+.brand{display:flex;align-items:center;gap:12px;}
+.logo{font-size:21px;color:var(--green);width:38px;height:38px;display:grid;place-items:center;
+  border:1px solid #3a4a3a;background:#111a13;border-radius:4px;}
+h1{font-size:17px;letter-spacing:.14em;font-weight:700;}
+.brand p{font-size:9.5px;letter-spacing:.3em;color:var(--dim);margin-top:1px;}
+.topmeta{display:flex;align-items:center;gap:8px;}
+.pill{font-size:12px;color:var(--dim);border:1px solid var(--line);background:var(--panel2);
+  padding:4px 10px;border-radius:3px;letter-spacing:.05em;white-space:nowrap;}
+.pill b{color:var(--amber);font-family:Consolas,monospace;}
+.iconbtn{width:30px;height:30px;border-radius:3px;border:1px solid var(--line);background:var(--panel2);
+  color:var(--dim);font-size:14px;cursor:pointer;font-family:inherit;}
+.iconbtn:hover{color:var(--amber);border-color:#4a4128;}
+.iconbtn.off{opacity:.35;}
+main{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 336px;gap:14px;padding:12px 16px 14px;}
+#stage{min-width:0;display:flex;flex-direction:column;gap:8px;align-items:center;}
+#canvasWrap{width:100%;max-width:1056px;border:1px solid var(--line2);border-radius:5px;overflow:hidden;
+  box-shadow:0 18px 50px rgba(0,0,0,.55);background:#101215;}
+canvas{display:block;width:100%;height:auto;cursor:crosshair;}
+#hintbar{width:100%;max-width:1056px;min-height:31px;display:flex;align-items:center;gap:9px;
+  padding:5px 12px;border:1px solid var(--line);background:var(--panel2);border-radius:4px;
+  font-size:12.5px;color:#c8c3b7;}
+#hintbar .dot{width:7px;height:7px;background:var(--amber);border-radius:50%;flex:0 0 auto;}
+#hintbar.alert{border-color:#5a2a24;background:#1a0f0e;}
+#hintbar.alert .dot{background:var(--red);}
+#side{min-height:0;overflow-y:auto;padding-right:3px;}
+#side::-webkit-scrollbar{width:8px;}
+#side::-webkit-scrollbar-thumb{background:#2c3138;border-radius:4px;}
+#side::-webkit-scrollbar-track{background:transparent;}
+.panel{background:linear-gradient(180deg,#14171b,#101215);border:1px solid var(--line);
+  border-radius:6px;padding:8px 10px;margin-bottom:7px;}
+.panel-head{display:flex;justify-content:space-between;align-items:center;font-size:10.5px;
+  letter-spacing:.2em;color:#c79a4e;margin-bottom:8px;text-transform:uppercase;}
+.dim{color:var(--dim);letter-spacing:.06em;font-size:11px;text-transform:none;}
+.hprow{display:flex;align-items:center;gap:8px;}
+.bar{display:block;height:9px;background:#1b1e23;border:1px solid #2c3138;border-radius:2px;overflow:hidden;}
+.bar i{display:block;height:100%;background:var(--green);width:100%;}
+.bar.hp{flex:1;}
+.hpnum{font-family:Consolas,monospace;font-size:12px;color:#c8c3b7;white-space:nowrap;}
+.gear{margin-top:9px;display:flex;flex-direction:column;gap:5px;}
+.gear-row{display:grid;grid-template-columns:32px 1fr auto;gap:4px 7px;align-items:center;font-size:12px;}
+.gear-k{color:var(--dim);font-size:11px;}
+.gear-n{color:#e6e1d4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gear-s{font-family:Consolas,monospace;color:var(--amber);font-size:11px;}
+.gear-row .bar{grid-column:1 / -1;height:4px;margin-top:-1px;}
+.bar i.dur{background:#8a9aa8;}
+ul.obj{list-style:none;display:flex;flex-direction:column;gap:5px;font-size:12.4px;}
+ul.obj li{display:flex;gap:7px;color:#a9a49a;line-height:1.35;}
+ul.obj li .mk{color:#4a4f57;flex:0 0 auto;font-family:Consolas,monospace;}
+ul.obj li.done{color:#7f9a72;text-decoration:line-through;text-decoration-color:#3f5540;}
+ul.obj li.done .mk{color:var(--green);}
+ul.obj li.active{color:#e0b25a;}
+ul.obj li.active .mk{color:var(--amber);}
+.partsline{margin-top:9px;padding-top:8px;border-top:1px dashed #262b32;font-size:11.5px;color:var(--dim);
+  display:flex;flex-wrap:wrap;gap:3px 9px;}
+.partsline b{font-family:Consolas,monospace;color:#c8c3b7;font-weight:600;}
+.partsline .ok{color:var(--green);}
+.partsline .no{color:#6d5a5a;}
+.bag{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+.slot{position:relative;aspect-ratio:1/1;background:#161a1e;border:1px solid #2a2f36;border-radius:4px;
+  display:flex;align-items:center;justify-content:center;cursor:pointer;user-select:none;}
+.slot:hover{border-color:#6a5830;background:#1a1e23;}
+.slot.empty{background:#0f1215;border-style:dashed;border-color:#1e232a;cursor:default;}
+.slot .g{font-size:17px;font-weight:700;line-height:1;}
+.slot .cnt{position:absolute;right:3px;bottom:1px;font-size:10px;color:#cfc9bb;font-family:Consolas,monospace;}
+.slot .x{position:absolute;left:2px;top:1px;font-size:10px;color:#6c625a;padding:1px 2px;line-height:1;}
+.slot .x:hover{color:var(--red);}
+.slot .durbar{position:absolute;left:3px;right:3px;bottom:2px;height:2px;background:#242a30;}
+.slot .durbar b{display:block;height:100%;background:#8a9aa8;}
+.tip{font-size:10.5px;color:#6f7278;margin-top:7px;letter-spacing:.03em;}
+ul.log{list-style:none;max-height:146px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;
+  font-size:12px;line-height:1.45;}
+ul.log li{color:#b4afa3;}
+ul.log li .tn{color:#5c6068;font-family:Consolas,monospace;font-size:10px;margin-right:5px;}
+.k-good{color:#8fce74!important;} .k-bad{color:#e07a68!important;}
+.k-warn{color:#e0b25a!important;} .k-sys{color:#87aecb!important;} .k-info{color:#b4afa3!important;}
+.keys .keyrow{display:flex;align-items:center;gap:5px;font-size:11.5px;color:#a9a49a;margin-bottom:5px;}
+.keys .keyrow:last-child{margin-bottom:0;}
+kbd{font-family:Consolas,monospace;font-size:10.5px;background:#191d22;border:1px solid #333941;
+  border-bottom-width:2px;border-radius:3px;padding:1px 5px;color:#d5d0c4;min-width:19px;text-align:center;}
+.keys .keyrow span{margin-left:3px;}
+#modal{position:fixed;inset:0;background:rgba(4,5,7,.84);display:flex;align-items:center;justify-content:center;
+  padding:24px;z-index:50;}
+#modal.hidden{display:none;}
+.modal-card{width:min(840px,100%);max-height:88vh;overflow-y:auto;background:#111418;
+  border:1px solid #30363e;border-radius:8px;padding:22px 24px;box-shadow:0 26px 70px rgba(0,0,0,.7);}
+.modal-card::-webkit-scrollbar{width:9px;}
+.modal-card::-webkit-scrollbar-thumb{background:#2c3138;border-radius:4px;}
+.mc-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:6px;}
+.mc-head h2{font-size:19px;letter-spacing:.1em;}
+.mc-head p{font-size:12px;color:var(--dim);margin-top:3px;}
+.mc-x{background:none;border:1px solid var(--line2);color:var(--dim);border-radius:3px;
+  width:28px;height:28px;cursor:pointer;font-size:14px;flex:0 0 auto;font-family:inherit;}
+.mc-x:hover{color:var(--red);border-color:#5a2a24;}
+.btn{font-family:inherit;cursor:pointer;border-radius:4px;padding:8px 18px;font-size:13px;
+  background:#1b2026;color:#ded9cc;border:1px solid #3a414a;letter-spacing:.06em;}
+.btn:hover{background:#232a31;border-color:#5a6470;}
+.btn.primary{background:#e0a13c;border-color:#e0a13c;color:#17130a;font-weight:700;}
+.btn.primary:hover{background:#f0af48;border-color:#f0af48;}
+.btn.danger{background:#5a201a;border-color:#8a342a;color:#f0c0b8;}
+.btn.danger:hover{background:#6d261e;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.hero{display:flex;align-items:center;gap:16px;margin:6px 0 16px;}
+.hero .big{font-size:44px;color:var(--green);}
+.hero h2{font-size:26px;letter-spacing:.16em;}
+.hero p{color:var(--dim);letter-spacing:.12em;font-size:11px;}
+.story{font-size:13px;line-height:1.8;color:#c3beb2;margin-bottom:16px;}
+.story b{color:var(--amber);}
+.mcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+.mcol{border:1px solid var(--line);background:#0e1114;border-radius:5px;padding:11px 13px;}
+.mcol h3{font-size:11px;letter-spacing:.2em;color:#c79a4e;margin-bottom:7px;text-transform:uppercase;}
+.mcol p{font-size:12px;color:#b0ab9f;line-height:1.6;}
+.mcol b{color:#e6e1d4;}
+.mfoot{display:flex;justify-content:flex-end;gap:10px;margin-top:6px;}
+.savebox{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  border:1px solid #4a4128;background:#1a1710;border-radius:6px;padding:10px 12px;margin:0 0 12px;}
+.saveinfo{font-size:12.5px;color:#d8c9a8;line-height:1.5;}
+.saveinfo b{color:#e0a13c;}
+.namebox{display:flex;align-items:center;gap:10px;margin:0 0 12px;flex-wrap:wrap;}
+.namebox label{font-size:12px;color:var(--dim);letter-spacing:.1em;}
+.namebox input{background:#0e1114;border:1px solid #3a414a;color:#e6e1d4;border-radius:4px;
+  padding:7px 10px;font-size:14px;font-family:inherit;width:150px;outline:none;}
+.namebox input:focus{border-color:var(--amber);}
+.savehint{font-size:11px;color:#6f7278;}
+.recipes{display:flex;flex-direction:column;gap:6px;}
+.rgroup{font-size:10px;letter-spacing:.2em;color:#c79a4e;margin:8px 0 1px;text-transform:uppercase;}
+.rgroup:first-child{margin-top:2px;}
+.recipe{display:grid;grid-template-columns:38px 1fr auto;gap:9px;align-items:center;
+  border:1px solid #242a31;background:#0e1115;border-radius:5px;padding:7px 10px;}
+.recipe.locked{opacity:.55;}
+.r-icon{width:34px;height:34px;border:1px solid #2c333b;border-radius:4px;display:grid;place-items:center;
+  font-size:18px;font-weight:700;background:#14181c;}
+.r-name{font-size:13px;color:#e6e1d4;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.r-name .tag{font-family:Consolas,monospace;font-size:10px;color:var(--amber);border:1px solid #4a4128;
+  background:#1a1710;border-radius:2px;padding:0 5px;letter-spacing:.02em;}
+.r-cost{font-size:11px;color:#8d8f95;margin-top:2px;}
+.r-cost .c-ok{color:#8fce74;} .r-cost .c-no{color:#d96655;}
+.r-desc{font-size:10.5px;color:#6f7278;margin-top:1px;}
+.r-btn{min-width:70px;padding:6px 12px;font-size:12px;}
+.hr{border:0;border-top:1px solid var(--line);margin:16px 0;}
+.warnbox{border:1px solid #5a2a24;background:#1b100e;border-radius:5px;padding:11px 13px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:14px;}
+.warnbox p{font-size:12px;color:#d8a9a1;line-height:1.5;}
+.badge{font-family:Consolas,monospace;font-size:10.5px;border:1px solid #3a414a;color:#8d8f95;
+  border-radius:2px;padding:0 5px;}
+.over{text-align:center;padding:8px 0 4px;}
+.over .big{font-size:52px;line-height:1.1;margin-bottom:8px;}
+.over h2{font-size:24px;letter-spacing:.2em;margin-bottom:6px;}
+.over p{color:var(--dim);font-size:13px;margin-bottom:14px;}
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0 18px;}
+.stat{border:1px solid var(--line);background:#0e1114;border-radius:5px;padding:10px;}
+.stat b{display:block;font-family:Consolas,monospace;font-size:19px;color:var(--amber);}
+.stat span{font-size:11px;color:var(--dim);letter-spacing:.08em;}
+@media (max-width:1180px){
+  main{grid-template-columns:minmax(0,1fr) 300px;}
+  #side{max-height:calc(100vh - 86px);}
+}
+@media (max-width:960px){
+  body{overflow:auto;}
+  main{grid-template-columns:1fr;overflow:visible;}
+  #stage{order:1;} #side{order:2;max-height:none;}
+  .mcols{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="topbar">
+    <div class="brand">
+      <span class="logo">☣</span>
+      <div><h1>屍潮餘燼</h1><p>DEAD BLOCK · 近戰生存</p></div>
+    </div>
+    <div class="topmeta">
+      <div class="pill">第 <b id="turnLabel">0</b> 回合</div>
+      <div class="pill" id="phaseLabel">搜刮階段</div>
+      <button class="iconbtn" id="saveBtn" title="保存進度">存</button>
+      <button class="iconbtn" id="helpBtn" title="玩法說明">?</button>
+      <button class="iconbtn" id="musicBtn" title="背景音樂">♫</button>
+      <button class="iconbtn" id="muteBtn" title="音效開關">♪</button>
+    </div>
+  </header>
+  <main>
+    <section id="stage">
+      <div id="canvasWrap"><canvas id="game" width="1056" height="600" tabindex="0"></canvas></div>
+      <div id="hintbar"><span class="dot"></span><span id="hintText">正在載入…</span></div>
+    </section>
+    <aside id="side">
+      <section class="panel">
+        <div class="panel-head"><span id="charName">倖存者 · 阿鐵</span><span class="dim" id="posLabel">—</span></div>
+        <div class="hprow">
+          <span class="bar hp"><i id="hpFill"></i></span>
+          <span class="hpnum" id="hpText">100 / 100</span>
+        </div>
+        <div class="gear">
+          <div class="gear-row">
+            <span class="gear-k">武器</span>
+            <span class="gear-n" id="weaponName">木棒</span>
+            <span class="gear-s" id="weaponStat">ATK 5</span>
+            <span class="bar"><i id="weaponDur"></i></span>
+          </div>
+          <div class="gear-row">
+            <span class="gear-k">護甲</span>
+            <span class="gear-n" id="armorName">無</span>
+            <span class="gear-s" id="armorStat">DEF 0</span>
+            <span class="bar"><i id="armorDur"></i></span>
+          </div>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><span>生存目標</span></div>
+        <ul id="objList" class="obj"></ul>
+        <div class="partsline" id="partsLine"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><span>背包</span><span class="dim" id="bagCount">0 / 12</span></div>
+        <div id="bagGrid" class="bag"></div>
+        <div class="tip">點擊物品：食用 / 裝備 · 右上角 ×：丟棄</div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><span>日誌</span><span class="dim" id="logTurn"></span></div>
+        <ul id="logList" class="log"></ul>
+      </section>
+    </aside>
+  </main>
+</div>
+<div id="modal" class="hidden"></div>
+
+<script>
+(() => {
+'use strict';
+
+/* =========================================================================
+   0. 基礎常量與工具
+   ========================================================================= */
+const TILE = 24, W = 64, H = 40;
+const VIEW_W = 44 * TILE, VIEW_H = 25 * TILE;   // 視窗 1056x600；地圖 1536x960
+const CAP = 12;
+const HOLDOUT_TURNS = 10;
+
+const T = { STREET:0, SIDEWALK:1, GRASS:2, FLOOR:3, WALL:4, DOOR:5, BARRICADE:6 };
+const DIRS = [[0,-1],[1,0],[0,1],[-1,0]];
+
+const $ = (id) => document.getElementById(id);
+const canvas = $('game');
+const ctx = canvas.getContext('2d');
+const DPR = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+canvas.width = VIEW_W * DPR;
+canvas.height = VIEW_H * DPR;
+
+const clamp = (v,a,b) => Math.max(a, Math.min(b, v));
+const rnd = (n) => Math.floor(Math.random() * n);
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+function hash2(x,y){
+  let h = (x|0) * 374761393 + (y|0) * 668265263;
+  h = (h ^ (h >>> 13)) * 1274126177;
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967295;
+}
+function seeded(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+function rr(x,y,w,h,r){
+  const rad = Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rad,y);
+  ctx.arcTo(x+w,y,x+w,y+h,rad);
+  ctx.arcTo(x+w,y+h,x,y+h,rad);
+  ctx.arcTo(x,y+h,x,y,rad);
+  ctx.arcTo(x,y,x+w,y,rad);
+  ctx.closePath();
+}
+
+/* =========================================================================
+   1. 數據：物品 / 喪屍 / 配方 / 掉落
+   ========================================================================= */
+const ITEM = {
+  /* ---- 零件 ---- */
+  scrap:   { name:'廢鐵',   glyph:'鐵', color:'#9aa3ad', type:'mat', desc:'生鏽的金屬碎片。武器與護甲的基礎。' },
+  wood:    { name:'木板',   glyph:'木', color:'#b98a55', type:'mat', desc:'從傢俱上拆下來的木板。' },
+  cloth:   { name:'布條',   glyph:'布', color:'#c2b7a0', type:'mat', desc:'從窗簾或衣物撕下的布條。' },
+  wire:    { name:'電線',   glyph:'線', color:'#c9a227', type:'mat', desc:'還帶著一點銅芯的電線。' },
+  tape:    { name:'膠帶',   glyph:'膠', color:'#8f9aa3', type:'mat', desc:'萬能膠帶，什麼都粘得住。' },
+  bottle:  { name:'玻璃瓶', glyph:'瓶', color:'#6fa8a5', type:'mat', desc:'空玻璃瓶，可以裝東西。' },
+  battery: { name:'電池',   glyph:'電', color:'#d3c15a', type:'mat', desc:'還有電的蓄電池。通訊設備的必需品。' },
+  circuit: { name:'電路板', glyph:'路', color:'#5fa86b', type:'mat', desc:'從舊收音機裡拆出的電路板。' },
+  antenna: { name:'天線',   glyph:'天', color:'#a8aab8', type:'mat', desc:'警局的通訊天線，訊號發射器的核心。' },
+
+  /* ---- 食物 ---- */
+  can:     { name:'罐頭',   glyph:'罐', color:'#c98a4b', type:'food', heal:25, desc:'過期了，但還能吃。回復 25 生命。' },
+  bread:   { name:'麵包',   glyph:'包', color:'#c9a86b', type:'food', heal:15, desc:'有點硬。回復 15 生命。' },
+  bar:     { name:'能量棒', glyph:'棒', color:'#b0b060', type:'food', heal:10, desc:'甜得發膩。回復 10 生命。' },
+  bandage: { name:'繃帶',   glyph:'繃', color:'#d8d0c0', type:'food', heal:35, desc:'乾淨紗布。回復 35 生命。' },
+  pill:    { name:'止痛藥', glyph:'藥', color:'#c86b7a', type:'food', heal:20, desc:'能壓住疼。回復 20 生命。' },
+  medkit:  { name:'急救包', glyph:'急', color:'#d05a4a', type:'food', heal:45, desc:'自製急救包。回復 45 生命。' },
+
+  /* ---- 武器 ---- */
+  bat_wood:  { name:'木棒',   glyph:'棒', color:'#a9784a', type:'weapon', atk:5,  dur:25, desc:'一根還算結實的木棒。' },
+  crowbar:   { name:'撬棍',   glyph:'撬', color:'#8a8f96', type:'weapon', atk:7,  dur:30, tool:true, desc:'能撬開鐵鏈與藥櫃，也能砸人。' },
+  bat_nail:  { name:'釘棒',   glyph:'釘', color:'#b08a5a', type:'weapon', atk:8,  dur:35, desc:'木板釘滿鐵釘，最早可靠的自製武器。' },
+  machete:   { name:'砍刀',   glyph:'刀', color:'#b9c0c8', type:'weapon', atk:10, dur:45, desc:'磨利的鋼板，握把纏著膠帶。' },
+  axe_fire:  { name:'消防斧', glyph:'斧', color:'#c0453a', type:'weapon', atk:15, dur:40, desc:'破拆消防斧。一斧就能放倒行屍。' },
+
+  /* ---- 護甲 ---- */
+  cloth_armor:{ name:'布甲',   glyph:'甲', color:'#a89a7a', type:'armor', def:1, dur:20, desc:'幾層布條縫在一起，聊勝於無。' },
+  scrap_armor:{ name:'鐵甲',   glyph:'甲', color:'#8a929c', type:'armor', def:3, dur:40, desc:'鐵片綁在身上，很重，但真的擋得住。' },
+  riot_armor: { name:'防暴甲', glyph:'甲', color:'#3f5a8a', type:'armor', def:5, dur:60, desc:'警局庫存。喪屍的牙齒啃不穿。' },
+
+  /* ---- 任務物 ---- */
+  radio:   { name:'訊號發射器', glyph:'信', color:'#e0a13c', type:'quest', desc:'自製的中繼電臺。啟動它，救援就會知道這裡還有人。' },
+};
+
+const ZOMBIES = {
+  walker:  { name:'行屍',   hp:14, atk:4,  speed:2, sense:7,  size:1.0, tint:'#63804f', tint2:'#7d9a63' },
+  crawler: { name:'爬屍',   hp:9,  atk:3,  speed:1, sense:6,  size:0.72, tint:'#8a7a45', tint2:'#a89457' },
+  brute:   { name:'巨屍',   hp:32, atk:9,  speed:3, sense:6,  size:1.32, tint:'#7d6b57', tint2:'#937f67' },
+  spitter: { name:'噴吐者', hp:18, atk:5,  speed:2, sense:9,  size:1.06, tint:'#7a7a3f', tint2:'#9a9a55', range:4 },
+  boss:    { name:'變異體', hp:70, atk:13, speed:2, sense:11, size:1.5,  tint:'#8a5478', tint2:'#a06a8c' },
+};
+
+const RECIPES = [
+  { id:'bat_nail',    out:'bat_nail',    cost:{ wood:2, scrap:2, tape:1 },        note:'ATK 8 · 耐久 35',       desc:'木板釘滿鐵釘，能兩下敲倒一隻行屍。' },
+  { id:'machete',     out:'machete',     cost:{ scrap:3, wood:1, tape:1 },        note:'ATK 10 · 耐久 45',      desc:'把鋼板磨出刃，比木棒可靠得多。' },
+  { id:'axe_fire',    out:'axe_fire',    cost:{ scrap:4, wood:2, tape:2 },        note:'ATK 15 · 耐久 40',      desc:'一斧放倒行屍。需要五金店的圖紙。', bp:'bp_axe',  bpHint:'五金店的鐵櫃' },
+  { id:'crowbar',     out:'crowbar',     cost:{ scrap:3, wood:1 },                note:'ATK 7 · 可撬門',        desc:'撬開鎖死的門和藥櫃。先去警局之前做一把。' },
+  { id:'cloth_armor', out:'cloth_armor', cost:{ cloth:4, tape:1 },                note:'DEF 1 · 耐久 20',       desc:'幾層布條縫起來，能擋一點抓傷。' },
+  { id:'scrap_armor', out:'scrap_armor', cost:{ scrap:5, cloth:2, tape:2 },       note:'DEF 3 · 耐久 40',       desc:'鐵片綁在身上。行屍的抓傷大多被彈開。' },
+  { id:'riot_armor',  out:'riot_armor',  cost:{ scrap:6, cloth:4, tape:3 },       note:'DEF 5 · 耐久 60',       desc:'最可靠的護甲。需要警局的圖紙。', bp:'bp_riot', bpHint:'警局的資料櫃' },
+  { id:'medkit',      out:'medkit',      n:1, cost:{ cloth:2, tape:1, bottle:1 }, note:'回復 45 生命',          desc:'把布條、膠帶和酒精瓶湊成一個急救包。' },
+  { id:'repair',      repair:true,       cost:{ scrap:1, tape:1 },                note:'修滿武器與護甲',        desc:'把當前裝備的耐久補滿。' },
+  { id:'radio',       out:'radio',       cost:{ antenna:1, circuit:1, battery:2, wire:3 }, note:'通關關鍵 · 堅守 10 回合', desc:'接通天線與電池，把求救訊號發出去。', bp:'bp_radio', bpHint:'警局的通訊鐵櫃' },
+];
+
+const BPNAME = { bp_axe:'消防斧圖紙', bp_riot:'防暴甲圖紙', bp_radio:'訊號發射器圖紙' };
+
+const LOOT = {
+  safehouse: [{id:'wood',w:3,min:1,max:3},{id:'scrap',w:3,min:1,max:3},{id:'cloth',w:2,min:1,max:3},{id:'tape',w:2,min:1,max:2},{id:'can',w:1,min:1,max:1}],
+  market:    [{id:'can',w:4,min:1,max:2},{id:'bread',w:3,min:1,max:2},{id:'bar',w:2,min:1,max:2},{id:'bottle',w:2,min:1,max:2},{id:'cloth',w:1,min:1,max:2}],
+  hardware:  [{id:'scrap',w:4,min:1,max:3},{id:'wood',w:3,min:1,max:3},{id:'tape',w:2,min:1,max:2},{id:'wire',w:2,min:1,max:2},{id:'bottle',w:1,min:1,max:1}],
+  gas:       [{id:'bottle',w:3,min:1,max:2},{id:'tape',w:2,min:1,max:2},{id:'wire',w:2,min:1,max:2},{id:'scrap',w:2,min:1,max:2},{id:'battery',w:1,min:1,max:1}],
+  hospital:  [{id:'bandage',w:3,min:1,max:2},{id:'pill',w:3,min:1,max:2},{id:'cloth',w:2,min:1,max:2},{id:'bottle',w:2,min:1,max:2},{id:'battery',w:1,min:1,max:1}],
+  police:    [{id:'battery',w:2,min:1,max:1},{id:'scrap',w:2,min:1,max:2},{id:'wire',w:1,min:1,max:2},{id:'bandage',w:1,min:1,max:1}],
+  apartment: [{id:'wood',w:2,min:1,max:2},{id:'cloth',w:2,min:1,max:2},{id:'can',w:2,min:1,max:1},{id:'bread',w:2,min:1,max:1},{id:'scrap',w:1,min:1,max:2}],
+  street:    [{id:'scrap',w:2,min:1,max:2},{id:'cloth',w:2,min:1,max:2},{id:'bottle',w:2,min:1,max:2},{id:'tape',w:1,min:1,max:1},{id:'can',w:1,min:1,max:1}],
+};
+
+const KIND_LABEL = { crate:'木箱', shelf:'貨架', locker:'鐵櫃', fridge:'冰櫃', cabinet:'櫃子', dumpster:'垃圾箱', workbench:'工作臺', car:'廢車', tree:'枯樹', pump:'加油機', bed:'舊床' };
+
+/* =========================================================================
+   2. 地圖
+   ========================================================================= */
+const ZONES = [
+  { id:'safehouse', name:'安全屋', en:'SAFE HOUSE', accent:'#6f9a6f', outer:[1,1,12,10],  door:[6,10],  label:[8,6] },
+  { id:'market',    name:'超市',   en:'MARKET',     accent:'#b08a3c', outer:[15,1,12,10], door:[20,10], label:[20,5] },
+  { id:'hardware',  name:'五金店', en:'HARDWARE',   accent:'#b06a3c', outer:[37,1,12,10], door:[42,10], label:[43,5] },
+  { id:'gas',       name:'加油站', en:'GAS',        accent:'#b0403c', outer:[50,1,12,10], door:[55,10], label:[55,5] },
+  { id:'hospital',  name:'醫院',   en:'HOSPITAL',   accent:'#3c8a8a', outer:[1,23,14,14], door:[7,23],  label:[7,29] },
+  { id:'police',    name:'警局',   en:'POLICE',     accent:'#3c5a9a', outer:[17,23,9,12], door:[21,23], label:[21,29] },
+  { id:'apartment', name:'公寓',   en:'APARTMENTS', accent:'#8a5a8a', outer:[37,23,12,12],door:[42,23], label:[42,29] },
+  { id:'warehouse', name:'倉庫',   en:'WAREHOUSE',  accent:'#9a8a5a', outer:[50,23,11,14],door:[55,23], label:[55,30] },
+];
+const ZMAP = {};
+ZONES.forEach(z => { ZMAP[z.id] = z; });
+
+const INIT_ZOMBIES = [
+  ['walker',14,12], ['walker',20,6],  ['walker',43,5],  ['walker',55,6],  ['walker',7,30],
+  ['walker',21,28], ['walker',41,30], ['walker',55,30], ['walker',30,12], ['walker',31,24],
+  ['walker',38,18], ['walker',24,18], ['walker',50,12], ['walker',13,25], ['walker',60,12],
+  ['walker',46,36], ['crawler',17,8], ['crawler',46,8], ['crawler',12,30],['crawler',23,32],
+  ['crawler',40,33],['crawler',58,35],['crawler',29,19],['brute',33,18],  ['brute',52,30],
+  ['spitter',56,28],
+];
+
+let MAP = null;
+let S = null;
+let CAM = { x:0, y:0 };
+let uid = 0;
+let MUTED = false;
+let AC = null;
+let modalOpen = false;
+let hoverTile = null;
+let PLAYER_NAME = '阿鐵';
+const SAVE_KEY = 'deadblock_save_v1';
+const SAVE_VERSION = 1;
+
+function sanitizeName(raw){
+  let n = String(raw == null ? '' : raw)
+    .replace(/<[^>]*>/g, '')
+    .replace(/[<>&"'`\\]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!n) n = '阿鐵';
+  return n.slice(0, 8);
+}
+
+function shade(hex){
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.round(((n >> 16) & 255) * .55);
+  const g = Math.round(((n >> 8) & 255) * .55);
+  const b = Math.round((n & 255) * .55);
+  return `rgb(${r},${g},${b})`;
+}
+
+function buildMiniMap(terr, zone){
+  const c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    const i = y*W+x, t = terr[i];
+    let col = '#2a2e34';
+    if (t === T.SIDEWALK) col = '#454b53';
+    else if (t === T.GRASS) col = '#33402f';
+    else if (t === T.FLOOR) col = zone[i] ? shade(ZMAP[zone[i]].accent) : '#4a4740';
+    else if (t === T.WALL) col = '#101216';
+    else if (t === T.DOOR) col = '#b08a52';
+    else if (t === T.BARRICADE) col = '#a8443a';
+    g.fillStyle = col;
+    g.fillRect(x, y, 1, 1);
+  }
+  return c;
+}
+
+function rollLoot(table, count){
+  const t = LOOT[table] || LOOT.street;
+  const out = [];
+  let total = 0;
+  for (const e of t) total += e.w;
+  for (let i = 0; i < count; i++){
+    let r = Math.random() * total, e = t[0];
+    for (const cand of t){ r -= cand.w; if (r <= 0){ e = cand; break; } }
+    const n = e.min + Math.floor(Math.random() * (e.max - e.min + 1));
+    const found = out.find(x => x.id === e.id);
+    if (found) found.n += n; else out.push({ id:e.id, n });
+  }
+  return out;
+}
+
+function buildMap(){
+  const terr = new Uint8Array(W * H);
+  const zone = new Array(W * H).fill(null);
+  const props = new Map();
+  const containers = [];
+  const decals = [];
+  const spawnTiles = [];
+  const put = (x,y,t) => { if (x>=0 && y>=0 && x<W && y<H) terr[y*W+x] = t; };
+  const fill = (x,y,w,h,t) => { for (let j=0;j<h;j++) for (let i=0;i<w;i++) put(x+i,y+j,t); };
+
+  fill(0,0,W,H,T.STREET);
+  fill(0,0,W,1,T.GRASS);  fill(0,H-1,W,1,T.GRASS);
+  fill(0,0,1,H,T.GRASS);  fill(W-1,0,1,H,T.GRASS);
+  fill(1,14,W-2,2,T.SIDEWALK);
+  fill(1,21,W-2,2,T.SIDEWALK);
+  fill(28,1,2,H-2,T.SIDEWALK);
+  fill(35,1,2,H-2,T.SIDEWALK);
+
+  for (const z of ZONES){
+    const [ox,oy,ow,oh] = z.outer;
+    for (let j=0;j<oh;j++) for (let i=0;i<ow;i++){
+      const x = ox+i, y = oy+j;
+      const edge = (i===0 || j===0 || i===ow-1 || j===oh-1);
+      terr[y*W+x] = edge ? T.WALL : T.FLOOR;
+      zone[y*W+x] = z.id;
+    }
+    put(z.door[0], z.door[1], T.DOOR);
+  }
+  put(21,23,T.BARRICADE); // 警局大門被鐵鏈鎖死
+
+  const prop = (x,y,kind,extra) => {
+    const p = Object.assign({
+      x, y, kind, block:true, searchable:false, searched:false,
+      loot:null, locked:null, bp:null, label:KIND_LABEL[kind] || '',
+    }, extra || {});
+    props.set(y*W+x, p);
+    return p;
+  };
+  const box = (kind,x,y,loot,extra) => {
+    const p = prop(x,y,kind,Object.assign({ searchable:true, loot }, extra || {}));
+    containers.push(p);
+    return p;
+  };
+
+  /* 安全屋 */
+  prop(3,3,'workbench',{ label:'工作臺' });
+  box('crate', 11,2, [{id:'wood',n:2},{id:'scrap',n:2},{id:'tape',n:1}]);
+  box('crate', 2,8,  [{id:'cloth',n:2},{id:'bread',n:1},{id:'scrap',n:1}]);
+  box('shelf', 11,8, rollLoot('safehouse',3));
+  box('crate', 3,8,  rollLoot('safehouse',3));
+
+  /* 超市 */
+  box('shelf', 16,2, rollLoot('market',3));
+  box('shelf', 16,3, rollLoot('market',3));
+  box('shelf', 16,4, rollLoot('market',3));
+  box('shelf', 16,5, rollLoot('market',3));
+  box('fridge',25,2, [{id:'can',n:2},{id:'bottle',n:1}]);
+  box('crate', 25,8, rollLoot('market',3));
+  box('crate', 20,8, rollLoot('market',3));
+
+  /* 五金店 */
+  box('shelf', 38,2, rollLoot('hardware',3));
+  box('shelf', 38,3, rollLoot('hardware',3));
+  box('shelf', 38,4, rollLoot('hardware',3));
+  box('locker',47,2, [{id:'circuit',n:1},{id:'wire',n:3},{id:'scrap',n:2}], { bp:'bp_axe', label:'五金店鐵櫃' });
+  box('crate', 47,8, rollLoot('hardware',3));
+  box('crate', 42,8, rollLoot('hardware',3));
+
+  /* 加油站 */
+  box('shelf', 51,2, rollLoot('gas',3));
+  box('crate', 60,2, [{id:'bottle',n:2},{id:'tape',n:1},{id:'battery',n:1}]);
+  box('shelf', 60,7, rollLoot('gas',3));
+  box('crate', 55,8, rollLoot('gas',3));
+  prop(52,11,'pump'); prop(58,11,'pump');
+
+  /* 醫院 */
+  box('cabinet', 2,24, [{id:'bandage',n:2},{id:'pill',n:2},{id:'battery',n:1}], { locked:'crowbar', label:'藥櫃' });
+  box('shelf',  13,24, rollLoot('hospital',3));
+  box('shelf',  13,30, rollLoot('hospital',3));
+  box('crate',  2,35,  rollLoot('hospital',3));
+  box('crate',  8,34,  rollLoot('hospital',3));
+  prop(5,26,'bed');
+
+  /* 警局 */
+  box('locker', 18,24, [{id:'antenna',n:1},{id:'scrap',n:1}], { bp:'bp_radio', label:'通訊鐵櫃' });
+  box('cabinet',24,24, [{id:'battery',n:2}], { bp:'bp_riot', label:'資料櫃' });
+  box('crate',  18,33, rollLoot('police',3));
+  box('crate',  24,30, rollLoot('police',3));
+
+  /* 公寓 */
+  box('shelf', 38,24, rollLoot('apartment',3));
+  box('shelf', 38,25, rollLoot('apartment',3));
+  box('crate', 47,33, rollLoot('apartment',3));
+  box('crate', 42,28, rollLoot('apartment',3));
+  box('crate', 40,31, rollLoot('apartment',3));
+  prop(46,24,'bed');
+
+  /* 倉庫（新區域） */
+  box('crate', 51,24, rollLoot('hardware',4));
+  box('crate', 51,25, rollLoot('hardware',3));
+  box('crate', 59,24, rollLoot('hardware',3));
+  box('crate', 59,30, rollLoot('hardware',3));
+  box('crate', 51,34, rollLoot('hardware',3));
+  box('shelf', 59,35, rollLoot('street',3));
+  box('locker',51,30, [{id:'scrap',n:4},{id:'cloth',n:3},{id:'tape',n:2},{id:'medkit',n:1}], { locked:'crowbar', label:'倉庫鐵櫃' });
+
+  /* 街道 */
+  box('dumpster',13,12, rollLoot('street',3));
+  box('dumpster',27,12, rollLoot('street',3));
+  box('dumpster',49,12, rollLoot('street',3));
+  box('dumpster',61,13, rollLoot('street',3));
+  box('dumpster',15,22, rollLoot('street',3));
+  box('dumpster',29,22, rollLoot('street',3));
+  box('dumpster',36,22, rollLoot('street',3));
+  box('dumpster',49,22, rollLoot('street',3));
+  prop(8,17,'car',{ color:'#544a4a' });
+  prop(22,18,'car',{ color:'#3f4a5a' });
+  prop(39,17,'car',{ color:'#4a5a4a' });
+  prop(52,18,'car',{ color:'#5a5a3a' });
+  prop(32,12,'car',{ color:'#5a3a3a' });
+  prop(31,26,'car',{ color:'#3f4a4a' });
+  [[0,6],[0,25],[63,7],[63,30],[4,0],[35,0],[60,39],[20,39],[62,28]].forEach(([x,y]) => prop(x,y,'tree'));
+
+  const drnd = seeded(20261113);
+  for (let i=0;i<210;i++){
+    const x = 1 + Math.floor(drnd()*(W-2)), y = 1 + Math.floor(drnd()*(H-2));
+    if (terr[y*W+x] === T.WALL) continue;
+    decals.push({
+      x: x*TILE + TILE/2 + (drnd()-.5)*11,
+      y: y*TILE + TILE/2 + (drnd()-.5)*11,
+      rx: 2 + drnd()*9, ry: 2 + drnd()*4.5,
+      rot: drnd()*Math.PI, a: .10 + drnd()*.26,
+    });
+  }
+
+  for (let y=1;y<H-1;y++) for (let x=1;x<W-1;x++){
+    const t = terr[y*W+x];
+    if (t === T.STREET || t === T.SIDEWALK) spawnTiles.push([x,y]);
+  }
+
+  return { terr, zone, props, containers, decals, spawnTiles, breaches:new Set(), mini: buildMiniMap(terr, zone) };
+}
+
+function updateCamera(){
+  if (!S) return;
+  const maxX = W*TILE - VIEW_W, maxY = H*TILE - VIEW_H;
+  CAM.x = clamp(Math.round(S.x*TILE + TILE/2 - VIEW_W/2), 0, maxX);
+  CAM.y = clamp(Math.round(S.y*TILE + TILE/2 - VIEW_H/2), 0, maxY);
+}
+
+
+function terrAt(x,y){ return (x<0||y<0||x>=W||y>=H) ? T.WALL : MAP.terr[y*W+x]; }
+function propAt(x,y){ return MAP.props.get(y*W+x) || null; }
+function blocked(x,y){
+  if (x<0||y<0||x>=W||y>=H) return true;
+  const t = MAP.terr[y*W+x];
+  if (t === T.WALL || t === T.BARRICADE) return true;
+  const p = MAP.props.get(y*W+x);
+  return !!(p && p.block);
+}
+function walkable(x,y){ return !blocked(x,y); }
+function zoneAt(x,y){
+  const id = MAP.zone[y*W+x];
+  return id ? ZMAP[id] : null;
+}
+function inSafehouse(x,y){
+  const z = zoneAt(x,y);
+  return !!z && z.id === 'safehouse';
+}
+/* 探索階段安全屋是安全區：屍潮只能聚在門口，進不來 */
+function zombieBlocked(x,y){
+  if (blocked(x,y)) return true;
+  if (S.phase !== 'holdout' && inSafehouse(x,y)) return true;
+  return false;
+}
+function zombieAt(x,y){
+  for (const z of S.zombies) if (z.x === x && z.y === y) return z;
+  return null;
+}
+
+/* =========================================================================
+   3. 遊戲狀態
+   ========================================================================= */
+function newGame(showIntro, name){
+  uid = 0;
+  PLAYER_NAME = sanitizeName(name || PLAYER_NAME);
+  MAP = buildMap();
+  S = {
+    name: PLAYER_NAME,
+    turn: 0, hp: 100, maxHp: 100, x: 6, y: 5, dir: { x:0, y:1 },
+    bag: [], weapon: { id:'bat_wood', dur:ITEM.bat_wood.dur }, armor: null,
+    zombies: [], corpses: [], log: [], kills: 0, crafted: 0, searches: 0,
+    phase: 'explore', holdoutStart: 0, radioBuilt: false, bp: {}, changes: [],
+    started: false, muted: MUTED,
+  };
+  addItem('can', 1);
+  for (const [type,x,y] of INIT_ZOMBIES) spawnZombie(type, x, y);
+  say('第 21 天。城市安靜得只剩風聲。', 'sys');
+  say(`你叫${S.name}。安全屋的箱子裡還有一點材料，工作臺就在旁邊。`, 'info');
+  say('收集零件，自製武器和護甲；食物能立刻回復生命。', 'info');
+  say('目標：做出訊號發射器，把救援叫來。', 'warn');
+  if (showIntro) showIntroModal();
+  else { S.started = true; closeModal(); }
+  refresh();
+}
+
+function spawnZombie(type,x,y){
+  const d = ZOMBIES[type];
+  const z = {
+    uid: ++uid, type, name:d.name, hp:d.hp, maxHp:d.hp, atk:d.atk,
+    speed:d.speed, sense:d.sense, size:d.size, range:d.range || 0,
+    x, y, cd: 1 + rnd(d.speed), alerted:false, memory:0, home:{x,y},
+  };
+  S.zombies.push(z);
+  return z;
+}
+
+/* =========================================================================
+   3b. 存檔 / 讀檔（localStorage）
+   ========================================================================= */
+function saveGame(silent){
+  if (!S || !S.started || S.phase === 'dead' || S.phase === 'won') return false;
+  try {
+    const payload = {
+      v: SAVE_VERSION, ts: Date.now(),
+      name: S.name, turn: S.turn, hp: S.hp, x: S.x, y: S.y, dir: S.dir,
+      bag: S.bag, weapon: S.weapon, armor: S.armor,
+      zombies: S.zombies.map(z => ({
+        type:z.type, x:z.x, y:z.y, hp:z.hp, maxHp:z.maxHp, atk:z.atk,
+        speed:z.speed, sense:z.sense, size:z.size, range:z.range,
+        cd:z.cd, alerted:z.alerted, memory:z.memory, home:z.home,
+      })),
+      corpses: S.corpses,
+      kills:S.kills, crafted:S.crafted, searches:S.searches,
+      phase:S.phase, holdoutStart:S.holdoutStart, radioBuilt:S.radioBuilt,
+      bp:S.bp, changes:S.changes,
+      log:S.log.slice(0, 30),
+      containers: MAP.containers.map(c => ({
+        x:c.x, y:c.y, loot:c.loot, searched:c.searched, locked:c.locked, bp:c.bp,
+      })),
+      breaches: [...MAP.breaches].map(i => [i % W, Math.floor(i / W)]),
+    };
+    localStorage.setItem(SAVE_KEY, JSON.stringify(payload));
+    return true;
+  } catch (e){
+    if (!silent) say('存檔失敗：這個瀏覽器不允許寫入本機儲存。','bad');
+    return false;
+  }
+}
+
+function loadSave(){
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d || d.v !== SAVE_VERSION) return null;
+    if (typeof d.turn !== 'number' || !Array.isArray(d.bag)) return null;
+    return d;
+  } catch (e){ return null; }
+}
+
+function clearSave(){
+  try { localStorage.removeItem(SAVE_KEY); } catch (e){ /* ignore */ }
+}
+
+function continueGame(d){
+  if (!d) return false;
+  newGame(false, d.name);
+  S.name = sanitizeName(d.name);
+  PLAYER_NAME = S.name;
+  S.turn = Math.max(0, d.turn | 0);
+  S.hp = clamp(Number(d.hp) || 1, 1, S.maxHp);
+  S.x = clamp(d.x | 0, 0, W-1);
+  S.y = clamp(d.y | 0, 0, H-1);
+  S.dir = (d.dir && typeof d.dir.x === 'number') ? { x: d.dir.x, y: d.dir.y } : { x:0, y:1 };
+  S.bag = Array.isArray(d.bag)
+    ? d.bag.filter(it => it && ITEM[it.id] && it.n > 0).map(it => ({
+        id:it.id, n:Math.min(99, it.n|0), ...(it.dur ? { dur:it.dur|0 } : {}),
+      }))
+    : [];
+  S.weapon = (d.weapon && ITEM[d.weapon.id] && ITEM[d.weapon.id].type === 'weapon')
+    ? { id:d.weapon.id, dur:Math.max(1, d.weapon.dur|0) } : null;
+  S.armor = (d.armor && ITEM[d.armor.id] && ITEM[d.armor.id].type === 'armor')
+    ? { id:d.armor.id, dur:Math.max(1, d.armor.dur|0) } : null;
+  S.kills = d.kills | 0;
+  S.crafted = d.crafted | 0;
+  S.searches = d.searches | 0;
+  S.phase = d.phase === 'holdout' ? 'holdout' : 'explore';
+  S.holdoutStart = d.holdoutStart | 0;
+  S.radioBuilt = !!d.radioBuilt;
+  S.bp = (d.bp && typeof d.bp === 'object') ? d.bp : {};
+  S.corpses = Array.isArray(d.corpses) ? d.corpses : [];
+
+  S.zombies = [];
+  for (const z of (Array.isArray(d.zombies) ? d.zombies : [])){
+    const def = ZOMBIES[z && z.type];
+    if (!def) continue;
+    S.zombies.push({
+      uid: ++uid, type: z.type, name: def.name,
+      hp: clamp(Number(z.hp) || 1, 1, Number(z.maxHp) || def.hp),
+      maxHp: Number(z.maxHp) || def.hp, atk: Number(z.atk) || def.atk,
+      speed: Number(z.speed) || def.speed, sense: Number(z.sense) || def.sense,
+      size: Number(z.size) || def.size, range: Number(z.range) || 0,
+      x: clamp(z.x | 0, 0, W-1), y: clamp(z.y | 0, 0, H-1),
+      cd: Math.max(1, z.cd | 0), alerted: !!z.alerted, memory: Number(z.memory) || 0,
+      home: (z.home && typeof z.home.x === 'number') ? { x:z.home.x|0, y:z.home.y|0 } : { x:z.x|0, y:z.y|0 },
+    });
+  }
+
+  for (const c of (Array.isArray(d.containers) ? d.containers : [])){
+    const p = propAt(c.x, c.y);
+    if (!p || !p.searchable) continue;
+    p.loot = Array.isArray(c.loot) ? c.loot.filter(e => e && ITEM[e.id] && e.n > 0) : [];
+    p.searched = !!c.searched;
+    p.locked = c.locked || null;
+    p.bp = c.bp || null;
+  }
+
+  S.changes = Array.isArray(d.changes) ? d.changes : [];
+  for (const ch of S.changes){
+    if (ch && ch.x >= 0 && ch.y >= 0 && ch.x < W && ch.y < H) MAP.terr[ch.y*W+ch.x] = ch.t;
+  }
+  MAP.breaches = new Set((Array.isArray(d.breaches) ? d.breaches : [])
+    .filter(p => Array.isArray(p) && p.length === 2)
+    .map(([x,y]) => y*W + x));
+  MAP.mini = buildMiniMap(MAP.terr, MAP.zone);
+
+  if (Array.isArray(d.log) && d.log.length){
+    S.log = d.log.slice(0, 30).map(l => ({
+      text: String(l && l.text || ''), kind: (l && l.kind) || 'info', turn: Number(l && l.turn) || 0,
+    }));
+  }
+
+  S.started = true;
+  modalLock = false;
+  closeModal();
+  updateCamera();
+  say(`讀取進度：${S.name} · 第 ${S.turn} 回合。`, 'sys');
+  refresh();
+  startMusic();
+  canvas.focus();
+  saveGame(true);
+  return true;
+}
+
+function beginRun(name){
+  if (!S) return;
+  const n = sanitizeName(name);
+  S.name = n;
+  PLAYER_NAME = n;
+  /* 開場那句「你叫…」是建立狀態時寫的，改成玩家剛輸入的名字 */
+  for (const l of S.log){
+    if (l.text.indexOf('你叫') === 0){
+      l.text = `你叫${n}。安全屋的箱子裡還有一點材料，工作臺就在旁邊。`;
+    }
+  }
+  S.started = true;
+  modalLock = false;
+  closeModal();
+  refresh();
+  canvas.focus();
+  say('你握緊木棒，推開了門。','info');
+  sfx('unlock');
+  startMusic();
+  saveGame(true);
+  renderUI();
+}
+
+/* =========================================================================
+   4. 繪製
+   ========================================================================= */
+const UI_FONT = '"Segoe UI","Microsoft JhengHei","Microsoft YaHei","PingFang TC",sans-serif';
+const MONO = 'Consolas,"Courier New",monospace';
+
+function draw(){
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.fillStyle = '#121417';
+  ctx.fillRect(0,0,VIEW_W,VIEW_H);
+
+  ctx.save();
+  ctx.translate(-CAM.x, -CAM.y);
+  const x0 = clamp(Math.floor(CAM.x/TILE) - 1, 0, W-1);
+  const x1 = clamp(Math.ceil((CAM.x + VIEW_W)/TILE) + 1, 0, W-1);
+  const y0 = clamp(Math.floor(CAM.y/TILE) - 1, 0, H-1);
+  const y1 = clamp(Math.ceil((CAM.y + VIEW_H)/TILE) + 1, 0, H-1);
+  for (let y=y0;y<=y1;y++) for (let x=x0;x<=x1;x++) drawTile(x,y);
+  drawRoadMarks();
+  drawZoneLabels();
+  drawDecals();
+  drawProps();
+  drawCorpses();
+  drawZombies();
+  drawPlayer();
+  drawFaceMarker();
+  ctx.restore();
+
+  drawVignette();
+  drawBanner();
+  drawMinimap();
+}
+
+function drawTile(x,y){
+  const i = y*W+x, t = MAP.terr[i];
+  const px = x*TILE, py = y*TILE;
+  const zid = MAP.zone[i];
+  const z = zid ? ZMAP[zid] : null;
+
+  if (t === T.STREET){
+    ctx.fillStyle = '#292d33'; ctx.fillRect(px,py,TILE,TILE);
+    const h = hash2(x,y);
+    if (h > .82){ ctx.fillStyle = '#2e3239'; ctx.fillRect(px+3,py+5,6,3); }
+    if (h < .10){ ctx.fillStyle = '#23262b'; ctx.fillRect(px+9,py+14,10,2); }
+    if (h > .35 && h < .40){ ctx.fillStyle = '#31353c'; ctx.fillRect(px+14,py+4,3,3); }
+  } else if (t === T.SIDEWALK){
+    ctx.fillStyle = '#42474f'; ctx.fillRect(px,py,TILE,TILE);
+    ctx.fillStyle = '#3a3f46';
+    ctx.fillRect(px,py+TILE-2,TILE,2); ctx.fillRect(px+TILE-2,py,2,TILE);
+    if (terrAt(x,y+1) === T.STREET || terrAt(x,y-1) === T.STREET ||
+        terrAt(x+1,y) === T.STREET || terrAt(x-1,y) === T.STREET){
+      ctx.fillStyle = '#565c65'; ctx.fillRect(px,py,TILE,1);
+    }
+  } else if (t === T.GRASS){
+    ctx.fillStyle = '#303a2d'; ctx.fillRect(px,py,TILE,TILE);
+    const h = hash2(x*2,y*3);
+    ctx.fillStyle = '#3a4733';
+    ctx.fillRect(px+4+h*8, py+6, 2, 5);
+    ctx.fillRect(px+14-h*6, py+14, 2, 4);
+    if (h > .7){ ctx.fillStyle = '#43503a'; ctx.fillRect(px+9, py+9, 5, 2); }
+  } else if (t === T.FLOOR){
+    ctx.fillStyle = '#34322c'; ctx.fillRect(px,py,TILE,TILE);
+    if (z){ ctx.globalAlpha = .12; ctx.fillStyle = z.accent; ctx.fillRect(px,py,TILE,TILE); ctx.globalAlpha = 1; }
+    ctx.fillStyle = '#3e3b34';
+    ctx.fillRect(px,py+TILE-1,TILE,1); ctx.fillRect(px+TILE-1,py,1,TILE);
+    const h = hash2(x+7,y+3);
+    if (h > .88){ ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(px+6,py+8,9,6); }
+  } else if (t === T.WALL){
+    ctx.fillStyle = '#1c1f24'; ctx.fillRect(px,py,TILE,TILE);
+    ctx.fillStyle = '#2b2f36'; ctx.fillRect(px,py,TILE,3);
+    ctx.fillStyle = '#111317'; ctx.fillRect(px,py+TILE-2,TILE,2);
+    if (z){ ctx.globalAlpha = .5; ctx.fillStyle = z.accent; ctx.fillRect(px,py,TILE,2); ctx.globalAlpha = 1; }
+  } else if (t === T.DOOR || t === T.BARRICADE){
+    ctx.fillStyle = '#34322c'; ctx.fillRect(px,py,TILE,TILE);
+    if (MAP.breaches && MAP.breaches.has(i)){
+      /* 屍潮撞開的牆洞 */
+      ctx.fillStyle = '#15130f'; ctx.fillRect(px+1,py+1,TILE-2,TILE-2);
+      ctx.fillStyle = '#0a0908'; ctx.fillRect(px+4,py+4,TILE-8,TILE-8);
+      ctx.fillStyle = '#3a3126';
+      ctx.fillRect(px+1,py+1,4,3); ctx.fillRect(px+TILE-5,py+2,3,4);
+      ctx.fillRect(px+2,py+TILE-6,5,4); ctx.fillRect(px+TILE-7,py+TILE-5,6,4);
+      ctx.fillStyle = '#4a3d2c';
+      ctx.fillRect(px+3,py+TILE-4,3,2); ctx.fillRect(px+TILE-6,py+5,2,2);
+    } else {
+      ctx.fillStyle = '#3b2f20'; ctx.fillRect(px+2,py+1,TILE-4,TILE-2);
+      ctx.fillStyle = '#6b5436'; ctx.fillRect(px+3,py+2,TILE-6,TILE-5);
+      ctx.fillStyle = '#7d6440'; ctx.fillRect(px+4,py+3,TILE-9,TILE-8);
+      ctx.fillStyle = '#e0c07a'; ctx.fillRect(px+TILE-8,py+TILE/2-1,2,3);
+      if (t === T.BARRICADE){
+        ctx.strokeStyle = '#8a8f96'; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(px+1,py+4); ctx.lineTo(px+TILE-1,py+TILE-4);
+        ctx.moveTo(px+1,py+TILE-4); ctx.lineTo(px+TILE-1,py+4);
+        ctx.stroke();
+        ctx.fillStyle = '#a8443a'; ctx.fillRect(px+1,py+TILE-7,TILE-2,3);
+      }
+    }
+  }
+
+  if (z && (t === T.FLOOR || t === T.WALL)){
+    // 建築內部陰影
+    if (t === T.FLOOR && (terrAt(x,y-1) === T.WALL)){
+      ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(px,py,TILE,4);
+    }
+  }
+}
+
+function drawRoadMarks(){
+  ctx.fillStyle = 'rgba(214,182,92,.26)';
+  for (let x=1;x<W-1;x+=2) ctx.fillRect(x*TILE+2, 18*TILE, TILE-5, 2);
+  for (let y=1;y<H-1;y+=2) ctx.fillRect(32*TILE, y*TILE+2, 2, TILE-5);
+  /* 路口斑馬線 */
+  ctx.fillStyle = 'rgba(220,220,210,.09)';
+  for (let i=0;i<9;i++) ctx.fillRect(30*TILE + i*6, 15*TILE + 2, 4, TILE-4);
+  for (let i=0;i<9;i++) ctx.fillRect(30*TILE + i*6, 20*TILE + 2, 4, TILE-4);
+}
+
+function drawZoneLabels(){
+  ctx.textAlign = 'center';
+  for (const z of ZONES){
+    const cx = z.label[0]*TILE+TILE/2, cy = z.label[1]*TILE+TILE/2;
+    ctx.globalAlpha = .46;
+    ctx.fillStyle = z.accent;
+    ctx.font = `700 12px ${UI_FONT}`;
+    ctx.fillText(z.name, cx, cy+3);
+    ctx.globalAlpha = .24;
+    ctx.fillStyle = '#e8e2d4';
+    ctx.font = `600 6.5px ${MONO}`;
+    ctx.fillText(z.en, cx, cy+12);
+    ctx.globalAlpha = 1;
+  }
+  ctx.textAlign = 'left';
+}
+
+function drawDecals(){
+  for (const d of MAP.decals){
+    ctx.save();
+    ctx.globalAlpha = d.a;
+    ctx.fillStyle = '#3d1216';
+    ctx.beginPath(); ctx.ellipse(d.x,d.y,d.rx,d.ry,d.rot,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha = d.a * .7;
+    ctx.fillStyle = '#240a0c';
+    ctx.beginPath(); ctx.ellipse(d.x+d.rx*.3,d.y-d.ry*.2,d.rx*.4,d.ry*.4,d.rot,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawProps(){
+  MAP.props.forEach(p => drawProp(p));
+}
+
+function drawProp(p){
+  const px = p.x*TILE, py = p.y*TILE;
+  const cx = px+TILE/2, cy = py+TILE/2;
+  const k = p.kind;
+
+  if (k !== 'tree'){
+    ctx.fillStyle = 'rgba(0,0,0,.30)';
+    ctx.beginPath(); ctx.ellipse(cx, cy+8, 9, 3.5, 0, 0, Math.PI*2); ctx.fill();
+  }
+
+  if (p.searchable && p.searched) ctx.globalAlpha = .48;
+
+  if (k === 'crate'){
+    ctx.fillStyle = '#6b4a2c'; ctx.fillRect(px+3,py+4,18,16);
+    ctx.fillStyle = '#7d5a36'; ctx.fillRect(px+3,py+4,18,4);
+    ctx.strokeStyle = '#4a331d'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(px+4,py+5); ctx.lineTo(px+20,py+19);
+    ctx.moveTo(px+20,py+5); ctx.lineTo(px+4,py+19);
+    ctx.stroke();
+    ctx.strokeStyle = '#33240f'; ctx.strokeRect(px+3.5,py+4.5,17,15);
+  } else if (k === 'shelf'){
+    ctx.fillStyle = '#4a4f56'; ctx.fillRect(px+3,py+2,18,20);
+    ctx.fillStyle = '#3a3f45'; ctx.fillRect(px+5,py+4,14,4);
+    ctx.fillRect(px+5,py+10,14,4);
+    ctx.fillRect(px+5,py+16,14,4);
+    ctx.fillStyle = '#8a5a36'; ctx.fillRect(px+6,py+5,5,2);
+    ctx.fillStyle = '#5f7a5a'; ctx.fillRect(px+12,py+11,4,2);
+    ctx.fillStyle = '#8a7a4a'; ctx.fillRect(px+8,py+17,7,2);
+  } else if (k === 'locker'){
+    ctx.fillStyle = '#54616d'; ctx.fillRect(px+4,py+2,16,20);
+    ctx.fillStyle = '#65737f'; ctx.fillRect(px+5,py+3,7,18);
+    ctx.fillStyle = '#141719'; ctx.fillRect(px+12,py+3,1,18);
+    ctx.fillStyle = '#c9ced6'; ctx.fillRect(px+10,py+11,2,4);
+    ctx.fillStyle = '#3d4852'; ctx.fillRect(px+6,py+5,3,1);
+    ctx.fillStyle = '#5a6a4a'; ctx.fillRect(px+6,py+7,4,2);
+  } else if (k === 'fridge'){
+    ctx.fillStyle = '#b9c2c4'; ctx.fillRect(px+4,py+2,16,20);
+    ctx.fillStyle = '#d0d8d8'; ctx.fillRect(px+5,py+3,14,8);
+    ctx.fillStyle = '#8c989a'; ctx.fillRect(px+5,py+12,14,1);
+    ctx.fillStyle = '#5f6a6a'; ctx.fillRect(px+16,py+6,1.5,6);
+    ctx.fillStyle = '#6d8280'; ctx.fillRect(px+7,py+15,8,3);
+  } else if (k === 'cabinet'){
+    ctx.fillStyle = '#7d8488'; ctx.fillRect(px+3,py+2,18,20);
+    ctx.fillStyle = '#949c9f'; ctx.fillRect(px+4,py+3,16,7);
+    ctx.fillStyle = '#949c9f'; ctx.fillRect(px+4,py+12,16,9);
+    ctx.fillStyle = '#525a5e'; ctx.fillRect(px+10,py+9,4,2);
+    ctx.fillStyle = '#e6e0d0'; ctx.fillRect(px+7,py+5,3,2);
+  } else if (k === 'dumpster'){
+    ctx.fillStyle = '#2f4230'; ctx.fillRect(px+2,py+7,20,14);
+    ctx.fillStyle = '#3b523b'; ctx.fillRect(px+2,py+5,20,5);
+    ctx.fillStyle = '#22301f'; ctx.fillRect(px+4,py+6,16,2);
+    ctx.fillStyle = '#4a6347'; ctx.fillRect(px+5,py+13,5,2);
+    ctx.fillStyle = '#1c271a'; ctx.fillRect(px+2,py+19,20,2);
+  } else if (k === 'workbench'){
+    ctx.fillStyle = '#3d2f20'; ctx.fillRect(px+2,py+6,20,4);
+    ctx.fillStyle = '#5a4630'; ctx.fillRect(px+2,py+10,20,9);
+    ctx.fillStyle = '#2e2418'; ctx.fillRect(px+3,py+13,18,1);
+    ctx.fillStyle = '#8a7a52'; ctx.fillRect(px+5,py+3,7,2);
+    ctx.fillStyle = '#9aa0a8'; ctx.fillRect(px+14,py+3,4,4);
+    ctx.fillStyle = '#b04a3a'; ctx.fillRect(px+15,py+10,2,4);
+    ctx.fillStyle = '#7d8488'; ctx.fillRect(px+6,py+10,3,3);
+    if (!p.searched){
+      ctx.fillStyle = 'rgba(224,161,60,.10)';
+      ctx.fillRect(px+1,py+1,22,22);
+    }
+  } else if (k === 'car'){
+    ctx.fillStyle = p.color || '#4a4a4a';
+    rr(px+2,py+5,20,14,3); ctx.fill();
+    ctx.fillStyle = '#1c2228';
+    ctx.fillRect(px+6,py+7,5,4); ctx.fillRect(px+13,py+7,5,4);
+    ctx.fillStyle = 'rgba(255,255,255,.10)'; ctx.fillRect(px+3,py+6,18,1);
+    ctx.fillStyle = '#2a2d31'; ctx.fillRect(px+4,py+18,4,3); ctx.fillRect(px+16,py+18,4,3);
+    ctx.fillStyle = '#3a3d40'; ctx.fillRect(px+8,py+12,8,4);
+    ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1; ctx.strokeRect(px+2.5,py+5.5,19,13);
+  } else if (k === 'tree'){
+    ctx.fillStyle = 'rgba(0,0,0,.28)';
+    ctx.beginPath(); ctx.ellipse(cx+2, cy+7, 9, 3.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#3a2f22'; ctx.fillRect(cx-2,cy-2,4,10);
+    ctx.fillStyle = '#2e4229';
+    ctx.beginPath(); ctx.arc(cx-3,cy-8,7,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx+4,cy-6,6,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#3a5232';
+    ctx.beginPath(); ctx.arc(cx-1,cy-10,4,0,Math.PI*2); ctx.fill();
+  } else if (k === 'pump'){
+    ctx.fillStyle = '#7a2b26'; ctx.fillRect(px+7,py+6,10,15);
+    ctx.fillStyle = '#96403a'; ctx.fillRect(px+8,py+7,8,5);
+    ctx.fillStyle = '#2a2d31'; ctx.fillRect(px+9,py+3,6,3);
+    ctx.fillStyle = '#c9a13c'; ctx.fillRect(px+11,py+14,2,3);
+    ctx.strokeStyle = '#1e2124'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(px+17,py+8); ctx.quadraticCurveTo(px+21,py+12,px+17,py+16); ctx.stroke();
+  } else if (k === 'bed'){
+    ctx.fillStyle = '#3d3a34'; ctx.fillRect(px+3,py+5,18,15);
+    ctx.fillStyle = '#6a6357'; ctx.fillRect(px+4,py+6,16,9);
+    ctx.fillStyle = '#8a8272'; ctx.fillRect(px+5,py+7,6,3);
+    ctx.fillStyle = '#2a2824'; ctx.fillRect(px+4,py+15,16,3);
+  }
+
+  if (p.searchable && p.locked){
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#111'; ctx.fillRect(px+14,py+3,8,9);
+    ctx.fillStyle = '#e0a13c'; ctx.fillRect(px+15,py+7,6,4);
+    ctx.strokeStyle = '#e0a13c'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(px+18,py+7,2.2,Math.PI,0); ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+}
+
+function drawCorpses(){
+  if (!S.corpses) return;
+  for (const c of S.corpses){
+    const cx = c.x*TILE+TILE/2, cy = c.y*TILE+TILE/2;
+    ctx.save();
+    ctx.globalAlpha = .5;
+    ctx.fillStyle = '#3d1418';
+    ctx.beginPath(); ctx.ellipse(cx, cy+4, 10, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = .85;
+    ctx.fillStyle = c.tint || '#4a5a42';
+    ctx.beginPath(); ctx.ellipse(cx-1, cy+2, 6.5, 4.2, .5, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#33412c';
+    ctx.beginPath(); ctx.arc(cx-6, cy+4, 3.2, 0, Math.PI*2); ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawZombies(){
+  for (const z of S.zombies) if (z.x >= 0) drawZombie(z);
+}
+
+function drawZombie(z){
+  const s = z.size;
+  const cx = z.x*TILE+TILE/2;
+  const cy = z.y*TILE+TILE/2 + (z.type === 'crawler' ? 3 : 0);
+  const d = ZOMBIES[z.type];
+  const body = z.type === 'boss' ? '#6a4058' : z.type === 'brute' ? '#6a5a48' : z.type === 'crawler' ? '#7a6b3d' : z.type === 'spitter' ? '#77773c' : '#55704a';
+  const head = z.type === 'boss' ? '#9a6a8a' : z.type === 'spitter' ? '#a0a05a' : '#7d9a63';
+  const dirX = Math.sign(S.x - z.x) || 0;
+  const dirY = Math.sign(S.y - z.y) || 0;
+
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,.36)';
+  ctx.beginPath(); ctx.ellipse(cx, cy+7*s, 8.5*s, 3.2*s, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#2e3228';
+  ctx.fillRect(cx-4.5*s, cy+2*s, 3.5*s, 6*s);
+  ctx.fillRect(cx+1*s, cy+2*s, 3.5*s, 6*s);
+
+  ctx.fillStyle = body;
+  rr(cx-5.5*s, cy-5.5*s, 11*s, 10*s, 2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.18)';
+  ctx.fillRect(cx-5.5*s, cy-1*s, 11*s, 2*s);
+
+  /* 前伸的手臂 */
+  ctx.strokeStyle = body; ctx.lineWidth = 2.4*s; ctx.lineCap = 'round';
+  const ax = dirX || (Math.random() < .5 ? 1 : -1);
+  ctx.beginPath();
+  ctx.moveTo(cx + ax*4*s, cy - 2*s);
+  ctx.lineTo(cx + ax*9*s, cy - 1*s + (dirY*2*s));
+  ctx.stroke();
+
+  ctx.fillStyle = head;
+  ctx.beginPath(); ctx.arc(cx, cy-8.5*s, 4.6*s, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,.25)';
+  ctx.beginPath(); ctx.arc(cx+1.5*s, cy-8.5*s, 4.6*s, -0.7, 1.6); ctx.fill();
+
+  /* 眼睛 */
+  ctx.fillStyle = z.type === 'boss' ? '#e05ac0' : '#e04a3a';
+  ctx.fillRect(cx-2.4*s-0.5, cy-9.6*s, 1.6*s, 1.6*s);
+  ctx.fillRect(cx+1.1*s-0.5, cy-9.6*s, 1.6*s, 1.6*s);
+
+  if (z.type === 'spitter'){
+    ctx.fillStyle = '#b8c255';
+    ctx.fillRect(cx-2*s, cy-6.4*s, 4*s, 1.6*s);
+    ctx.fillStyle = 'rgba(184,194,85,.6)';
+    ctx.fillRect(cx-1*s, cy-4.6*s, 2*s, 2.4*s);
+  }
+
+  /* 傷血條 */
+  if (z.hp < z.maxHp){
+    const w = 17, bx = cx - w/2, by = z.y*TILE + 1;
+    ctx.fillStyle = 'rgba(0,0,0,.65)'; ctx.fillRect(bx,by,w,3);
+    const pct = clamp(z.hp/z.maxHp,0,1);
+    ctx.fillStyle = pct > .5 ? '#a8b86a' : pct > .25 ? '#d8a04a' : '#d05a4a';
+    ctx.fillRect(bx,by,w*pct,3);
+  }
+  ctx.restore();
+}
+
+function drawPlayer(){
+  const cx = S.x*TILE+TILE/2, cy = S.y*TILE+TILE/2;
+  const d = S.dir;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(236,224,190,.55)';
+  ctx.lineWidth = 1.3;
+  ctx.beginPath(); ctx.ellipse(cx, cy+8, 11, 5, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = 'rgba(0,0,0,.42)';
+  ctx.beginPath(); ctx.ellipse(cx, cy+8, 9, 4, 0, 0, Math.PI*2); ctx.fill();
+
+  ctx.fillStyle = '#2b2f36';
+  ctx.fillRect(cx-5, cy+2, 4, 7);
+  ctx.fillRect(cx+1, cy+2, 4, 7);
+
+  /* 背包 */
+  ctx.fillStyle = '#56422e';
+  ctx.fillRect(cx - d.x*6 - 3.5, cy - d.y*6 - 3.5, 7, 7);
+
+  /* 軀幹 */
+  ctx.fillStyle = '#7b8752';
+  rr(cx-6, cy-6, 12, 11, 2); ctx.fill();
+  ctx.strokeStyle = 'rgba(0,0,0,.45)'; ctx.lineWidth = 1;
+  ctx.strokeRect(cx-5.5, cy-5.5, 11, 10);
+  ctx.fillStyle = '#616c3f';
+  ctx.fillRect(cx-6, cy+2, 12, 2);
+  ctx.fillStyle = '#8f9c66';
+  ctx.fillRect(cx-6, cy-6, 12, 2);
+
+  /* 手臂 */
+  ctx.fillStyle = '#7b8752';
+  ctx.fillRect(cx-8, cy-3, 2.6, 6);
+  ctx.fillRect(cx+5.4, cy-3, 2.6, 6);
+
+  /* 頭部 */
+  ctx.fillStyle = '#c9a079';
+  ctx.beginPath(); ctx.arc(cx, cy-9, 5, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#2e2620';
+  ctx.beginPath(); ctx.arc(cx, cy-10.2, 4.7, Math.PI, Math.PI*2); ctx.fill();
+
+  /* 眼睛 */
+  const ex = d.x*1.6, ey = d.y*1.2;
+  ctx.fillStyle = '#241f1a';
+  ctx.fillRect(cx-2.2+ex, cy-9.2+ey, 1.5, 1.5);
+  ctx.fillRect(cx+1+ex, cy-9.2+ey, 1.5, 1.5);
+
+  /* 武器：握在側手裡，朝面向的方向伸出 */
+  if (S.weapon){
+    const id = S.weapon.id;
+    const len = id === 'axe_fire' ? 12 : id === 'machete' ? 11 : id === 'crowbar' ? 10 : 11;
+    const perpX = -d.y, perpY = d.x;
+    const hx = cx + d.x*2 + perpX*3.5;
+    const hy = cy + d.y*2 + perpY*3.5 - 1;
+    ctx.strokeStyle = id === 'axe_fire' ? '#c0453a' : id === 'machete' ? '#cdd3da' : '#a97c4e';
+    ctx.lineWidth = id === 'axe_fire' ? 3 : 2.2;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(hx, hy);
+    ctx.lineTo(hx + d.x*len, hy + d.y*len);
+    ctx.stroke();
+    ctx.fillStyle = '#d8cdb4';
+    ctx.fillRect(hx-1, hy-1, 2, 2);
+  } else {
+    ctx.strokeStyle = '#c9a079'; ctx.lineWidth = 2.2; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx + d.x*4, cy + d.y*4);
+    ctx.lineTo(cx + d.x*8, cy + d.y*8);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawFaceMarker(){
+  const fx = S.x + S.dir.x, fy = S.y + S.dir.y;
+  if (fx < 0 || fy < 0 || fx >= W || fy >= H) return;
+  const px = fx*TILE, py = fy*TILE, L = 6;
+  ctx.strokeStyle = 'rgba(224,161,60,.8)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(px+1, py+L); ctx.lineTo(px+1, py+1); ctx.lineTo(px+L, py+1);
+  ctx.moveTo(px+TILE-1-L, py+1); ctx.lineTo(px+TILE-1, py+1); ctx.lineTo(px+TILE-1, py+L);
+  ctx.moveTo(px+TILE-1, py+TILE-1-L); ctx.lineTo(px+TILE-1, py+TILE-1); ctx.lineTo(px+TILE-1-L, py+TILE-1);
+  ctx.moveTo(px+L, py+TILE-1); ctx.lineTo(px+1, py+TILE-1); ctx.lineTo(px+1, py+TILE-1-L);
+  ctx.stroke();
+}
+
+function drawVignette(){
+  const g = ctx.createRadialGradient(VIEW_W/2, VIEW_H/2, VIEW_H*0.30, VIEW_W/2, VIEW_H/2, VIEW_H*0.86);
+  g.addColorStop(0, 'rgba(0,0,0,0)');
+  g.addColorStop(.72, 'rgba(0,0,0,.12)');
+  g.addColorStop(1, 'rgba(0,0,0,.52)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0,0,VIEW_W,VIEW_H);
+}
+
+function drawBanner(){
+  if (S.phase === 'holdout'){
+    const left = Math.max(0, HOLDOUT_TURNS - (S.turn - S.holdoutStart));
+    const w = 250, x = (VIEW_W-w)/2, y = 10;
+    ctx.fillStyle = 'rgba(10,12,14,.88)';
+    ctx.fillRect(x,y,w,34);
+    ctx.strokeStyle = '#8a342a'; ctx.lineWidth = 1; ctx.strokeRect(x+.5,y+.5,w-1,33);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e0a13c';
+    ctx.font = `700 9px ${MONO}`;
+    ctx.fillText('RESCUE INBOUND', x+w/2, y+12);
+    ctx.fillStyle = '#f0d8b0';
+    ctx.font = `700 15px ${UI_FONT}`;
+    ctx.fillText(`救援倒計時  ${left} 回合`, x+w/2, y+28);
+    ctx.textAlign = 'left';
+  } else if (S.phase === 'explore' && S.radioBuilt){
+    const w = 250, x = (VIEW_W-w)/2, y = 10;
+    ctx.fillStyle = 'rgba(10,12,14,.88)';
+    ctx.fillRect(x,y,w,30);
+    ctx.strokeStyle = '#4a4128'; ctx.lineWidth = 1; ctx.strokeRect(x+.5,y+.5,w-1,29);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e0a13c';
+    ctx.font = `700 12px ${UI_FONT}`;
+    ctx.fillText('訊號發射器就緒 · 回工作臺啟動', x+w/2, y+19);
+    ctx.textAlign = 'left';
+  }
+}
+
+function drawMinimap(){
+  if (!MAP || !MAP.mini) return;
+  const scale = 2, mw = W*scale, mh = H*scale;
+  const x = VIEW_W - mw - 14, y = 16;
+  ctx.save();
+  ctx.fillStyle = 'rgba(8,10,12,.80)';
+  ctx.fillRect(x-5, y-5, mw+10, mh+10);
+  ctx.strokeStyle = '#394049'; ctx.lineWidth = 1;
+  ctx.strokeRect(x-4.5, y-4.5, mw+9, mh+9);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(MAP.mini, x, y, mw, mh);
+
+  ctx.fillStyle = 'rgba(208,90,74,.95)';
+  for (const z of S.zombies) ctx.fillRect(x + z.x*scale, y + z.y*scale, 2, 2);
+  for (const [,p] of MAP.props){
+    if (p.kind === 'workbench'){ ctx.fillStyle = '#83c46c'; ctx.fillRect(x+p.x*scale-1, y+p.y*scale-1, 3, 3); }
+  }
+  const px = x + S.x*scale, py = y + S.y*scale;
+  ctx.fillStyle = '#0a0c0e'; ctx.fillRect(px-1, py-1, 5, 5);
+  ctx.fillStyle = '#e0a13c'; ctx.fillRect(px, py, 3, 3);
+
+  /* 目前視窗範圍 */
+  ctx.strokeStyle = 'rgba(232,226,212,.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(
+    Math.round(x + CAM.x/TILE*scale) + .5,
+    Math.round(y + CAM.y/TILE*scale) + .5,
+    Math.floor(VIEW_W/TILE*scale),
+    Math.floor(VIEW_H/TILE*scale)
+  );
+
+  ctx.fillStyle = '#6f7278';
+  ctx.font = `600 8px ${MONO}`;
+  ctx.textAlign = 'left';
+  ctx.fillText('MAP', x, y-9);
+  ctx.restore();
+}
+
+/* =========================================================================
+   5. 背包
+   ========================================================================= */
+function countOf(id){
+  let n = 0;
+  for (const s of S.bag) if (s.id === id) n += s.n;
+  return n;
+}
+function hasItem(id){ return countOf(id) > 0; }
+function isStack(d){ return d.type === 'mat' || d.type === 'food' || d.type === 'quest'; }
+
+function addItem(id, n, dur){
+  const d = ITEM[id];
+  if (!d) return 0;
+  if (isStack(d)){
+    const s = S.bag.find(b => b.id === id);
+    if (s){ s.n += n; return n; }
+    if (S.bag.length < CAP){ S.bag.push({ id, n }); return n; }
+    return 0;
+  }
+  if (S.bag.length < CAP){
+    S.bag.push({ id, n:1, dur: dur === undefined ? d.dur : dur });
+    return 1;
+  }
+  return 0;
+}
+
+function removeItem(id, n){
+  let left = n;
+  for (let i = S.bag.length - 1; i >= 0 && left > 0; i--){
+    const s = S.bag[i];
+    if (s.id !== id) continue;
+    const take = Math.min(s.n, left);
+    s.n -= take;
+    left -= take;
+    if (s.n <= 0) S.bag.splice(i,1);
+  }
+  return left === 0;
+}
+
+function hasSpaceFor(id){
+  const d = ITEM[id];
+  if (isStack(d)) return !!S.bag.find(s => s.id === id) || S.bag.length < CAP;
+  return S.bag.length < CAP;
+}
+
+function dropItem(i){
+  const s = S.bag[i];
+  if (!s) return;
+  if (s.id === 'radio'){ say('這是最後的希望，不能丟。','warn'); return; }
+  S.bag.splice(i,1);
+  say(`丟掉了${ITEM[s.id].name}。`,'info');
+  refresh();
+  saveGame(true);
+}
+
+function equipItem(i){
+  const s = S.bag[i];
+  if (!s) return;
+  const d = ITEM[s.id];
+  const kind = d.type;
+  if (kind !== 'weapon' && kind !== 'armor') return;
+  const prev = S[kind];
+  S.bag.splice(i,1);
+  S[kind] = { id:s.id, dur: s.dur === undefined ? d.dur : s.dur };
+  if (prev) S.bag.push({ id: prev.id, n:1, dur: prev.dur });
+  say(`裝備了${d.name}。`,'good');
+  sfx('equip');
+  refresh();
+  saveGame(true);
+}
+
+function eatItem(i){
+  const s = S.bag[i];
+  if (!s) return;
+  const d = ITEM[s.id];
+  if (d.type !== 'food') return;
+  if (S.hp >= S.maxHp){ say('你的狀態很好，不需要進食。','warn'); return; }
+  const heal = Math.min(d.heal, S.maxHp - S.hp);
+  S.hp += heal;
+  /* 一次只吃一個：同格堆疊要逐個扣除，不能整格刪掉 */
+  s.n -= 1;
+  if (s.n <= 0) S.bag.splice(i,1);
+  say(`你吃下${d.name}，回復 ${heal} 點生命${s.n > 0 ? `（還剩 ${s.n} 個）` : ''}。`,'good');
+  sfx('eat');
+  endTurn();
+}
+
+function useBag(i){
+  if (!S || !S.started || !alive()) return;
+  const s = S.bag[i];
+  if (!s) return;
+  const d = ITEM[s.id];
+  if (d.type === 'weapon' || d.type === 'armor'){ equipItem(i); return; }
+  if (d.type === 'food'){ eatItem(i); return; }
+  say(`${d.name}：${d.desc}`,'info');
+  renderUI();
+}
+
+function eatBest(){
+  if (!S || !S.started || !alive()) return;
+  let best = -1, bestHeal = -1;
+  S.bag.forEach((s,i) => {
+    const d = ITEM[s.id];
+    if (d.type === 'food' && d.heal > bestHeal){ bestHeal = d.heal; best = i; }
+  });
+  if (best < 0){ say('背包裡沒有食物。','warn'); sfx('nope'); return; }
+  eatItem(best);
+}
+
+/* =========================================================================
+   6. 日誌與音效
+   ========================================================================= */
+function say(text, kind){
+  if (!S) return;
+  S.log.unshift({ text, kind: kind || 'info', turn: S.turn });
+  if (S.log.length > 60) S.log.pop();
+}
+
+function ensureAudio(){
+  if (!AC){
+    try { AC = new (window.AudioContext || window.webkitAudioContext)(); }
+    catch (e){ AC = null; }
+  }
+  if (AC && AC.state === 'suspended') AC.resume();
+  if (AC) startMusic();
+}
+
+/* ---------- 背景音樂：低音持續音 + 稀疏五聲音階 pad，屍潮時加快加脈衝 ---------- */
+let MUSIC_ON = true;
+let musicBus = null, musicTimer = null, nextNote = 0, droneOn = false;
+const PENTA = [146.83, 174.61, 196.00, 220.00, 261.63, 293.66, 349.23];
+
+function initMusic(){
+  if (!AC || droneOn) return;
+  musicBus = AC.createGain();
+  musicBus.gain.value = MUSIC_ON ? .5 : 0;
+  musicBus.connect(AC.destination);
+
+  const lp = AC.createBiquadFilter();
+  lp.type = 'lowpass'; lp.frequency.value = 240; lp.Q.value = .7;
+  const dg = AC.createGain(); dg.gain.value = .05;
+  lp.connect(dg); dg.connect(musicBus);
+  [55, 82.41, 110].forEach((f, i) => {
+    const o = AC.createOscillator();
+    o.type = i === 0 ? 'sine' : 'triangle';
+    o.frequency.value = f;
+    o.detune.value = (i - 1) * 5;
+    o.connect(lp);
+    o.start();
+  });
+  droneOn = true;
+}
+
+function startMusic(){
+  if (!AC) return;
+  initMusic();
+  if (musicBus){
+    musicBus.gain.cancelScheduledValues(AC.currentTime);
+    musicBus.gain.setTargetAtTime(MUSIC_ON ? .5 : 0, AC.currentTime, .4);
+  }
+  if (musicTimer) return;
+  nextNote = AC.currentTime + 1.0;
+  musicTimer = setInterval(musicTick, 250);
+}
+
+function stopMusic(){
+  if (musicTimer){ clearInterval(musicTimer); musicTimer = null; }
+  if (musicBus && AC){
+    musicBus.gain.cancelScheduledValues(AC.currentTime);
+    musicBus.gain.setTargetAtTime(0.0001, AC.currentTime, .5);
+  }
+}
+
+function playPad(t){
+  const f = PENTA[Math.floor(Math.random() * PENTA.length)];
+  for (const [freq, type, vol, det] of [[f, 'triangle', .05, 0], [f * 2.005, 'sine', .028, 3]]){
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type; o.frequency.value = freq; o.detune.value = det;
+    g.gain.setValueAtTime(.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 1.1);
+    g.gain.exponentialRampToValueAtTime(.0001, t + 3.6);
+    o.connect(g); g.connect(musicBus);
+    o.start(t); o.stop(t + 3.8);
+  }
+}
+
+function playPulse(t){
+  const o = AC.createOscillator(), g = AC.createGain();
+  o.type = 'sine';
+  o.frequency.setValueAtTime(72, t);
+  o.frequency.exponentialRampToValueAtTime(38, t + .22);
+  g.gain.setValueAtTime(.0001, t);
+  g.gain.exponentialRampToValueAtTime(.05, t + .01);
+  g.gain.exponentialRampToValueAtTime(.0001, t + .28);
+  o.connect(g); g.connect(musicBus);
+  o.start(t); o.stop(t + .3);
+}
+
+function musicTick(){
+  if (!AC || !musicBus) return;
+  const hold = S && S.phase === 'holdout';
+  const horizon = AC.currentTime + 1.2;
+  let guard = 0;
+  while (nextNote < horizon && guard++ < 4){
+    playPad(nextNote);
+    if (hold) playPulse(nextNote + .45);
+    nextNote += hold ? 2.1 : 3.5;
+  }
+}
+
+function tone(freq, dur, type, vol, slide){
+  if (!AC || MUTED) return;
+  try {
+    const t = AC.currentTime;
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || 'square';
+    o.frequency.setValueAtTime(Math.max(30, freq), t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(30, freq + slide), t + dur);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol || .04, t + .006);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(AC.destination);
+    o.start(t); o.stop(t + dur + .03);
+  } catch (e){ /* 音訊不可用時靜默 */ }
+}
+
+function sfx(kind){
+  if (!AC || MUTED) return;
+  if (kind === 'step') tone(150, .025, 'sine', .015, -40);
+  else if (kind === 'hit'){ tone(150, .055, 'square', .045, -80); tone(90, .08, 'sawtooth', .03, -30); }
+  else if (kind === 'kill'){ tone(75, .18, 'sawtooth', .05, -35); }
+  else if (kind === 'hurt'){ tone(110, .16, 'sawtooth', .055, -55); }
+  else if (kind === 'eat'){ tone(380, .07, 'sine', .04, 120); setTimeout(() => tone(520, .08, 'sine', .035, 90), 70); }
+  else if (kind === 'craft'){ tone(300, .07, 'triangle', .05, 140); setTimeout(() => tone(460, .1, 'triangle', .04, 120), 80); }
+  else if (kind === 'pickup'){ tone(520, .05, 'sine', .03, 200); }
+  else if (kind === 'equip'){ tone(220, .06, 'square', .03, 120); }
+  else if (kind === 'unlock'){ tone(240, .09, 'square', .04, -90); }
+  else if (kind === 'nope'){ tone(140, .07, 'square', .03, -30); }
+  else if (kind === 'alarm'){ tone(600, .16, 'square', .04, -180); setTimeout(() => tone(500, .2, 'square', .04, -120), 200); }
+  else if (kind === 'win'){ [392, 494, 587, 784].forEach((f,i) => setTimeout(() => tone(f, .22, 'triangle', .045, 20), i*130)); }
+  else if (kind === 'lose'){ [220, 180, 140, 90].forEach((f,i) => setTimeout(() => tone(f, .26, 'sawtooth', .045, -20), i*150)); }
+}
+
+/* =========================================================================
+   7. 行動
+   ========================================================================= */
+function alive(){ return S && S.phase !== 'dead' && S.phase !== 'won'; }
+
+function tryMove(dx, dy){
+  if (!S || !S.started || !alive() || modalOpen) return;
+  S.dir = { x: dx, y: dy };
+  const nx = S.x + dx, ny = S.y + dy;
+  const z = zombieAt(nx, ny);
+  if (z){ attackZombie(z); endTurn(); return; }
+  const t = terrAt(nx, ny);
+  if (t === T.BARRICADE){
+    say('大門被鐵鏈鎖死了。需要一根撬棍。','warn');
+    sfx('nope');
+    draw(); renderUI();
+    return;
+  }
+  if (!walkable(nx, ny)){
+    const p = propAt(nx, ny);
+    say(p ? `${p.label}擋住了去路。` : '那邊是一堵牆。','warn');
+    sfx('nope');
+    draw(); renderUI();
+    return;
+  }
+  S.x = nx; S.y = ny;
+  sfx('step');
+  endTurn();
+}
+
+function attackZombie(z){
+  const w = S.weapon ? ITEM[S.weapon.id] : null;
+  const base = w ? w.atk : 2;
+  const crit = Math.random() < 0.12;
+  const dmg = Math.round(base * (crit ? 1.6 : 1));
+  z.hp -= dmg;
+  if (S.weapon){
+    S.weapon.dur -= 1;
+    if (S.weapon.dur <= 0){
+      say(`${w.name}徹底散架了。`,'bad');
+      S.weapon = null;
+    }
+  }
+  if (crit) say(`重擊！${w ? w.name : '拳頭'}砍進${z.name}的脖子，造成 ${dmg} 點傷害。`,'good');
+  else say(`你揮${w ? w.name : '出拳頭'}，對${z.name}造成 ${dmg} 點傷害。`,'info');
+  sfx('hit');
+  alertNear(S.x, S.y, 4);
+  if (z.hp <= 0) killZombie(z);
+  else z.alerted = true, z.memory = 14;
+}
+
+function killZombie(z){
+  S.kills++;
+  S.zombies = S.zombies.filter(q => q !== z);
+  S.corpses.push({ x:z.x, y:z.y, tint: z.type === 'brute' ? '#6a5a48' : z.type === 'boss' ? '#6a4058' : '#55704a' });
+  say(`${z.name}倒下了。`,'good');
+  sfx('kill');
+  if (Math.random() < .42){
+    const drops = [
+      { id:'scrap', w:3 }, { id:'cloth', w:3 }, { id:'can', w:2 },
+      { id:'tape', w:2 }, { id:'bread', w:2 }, { id:'bandage', w:1 },
+    ];
+    let total = 0; for (const d of drops) total += d.w;
+    let r = Math.random() * total, got = drops[0];
+    for (const d of drops){ r -= d.w; if (r <= 0){ got = d; break; } }
+    if (addItem(got.id, 1)) say(`屍體上還能用的東西：${ITEM[got.id].name} ×1。`,'info');
+  }
+}
+
+function doWait(){
+  if (!S || !S.started || !alive() || modalOpen) return;
+  say('你屏住呼吸，等了一拍。','info');
+  endTurn();
+}
+
+function facingProp(){
+  return propAt(S.x + S.dir.x, S.y + S.dir.y) || propAt(S.x, S.y);
+}
+
+function nearWorkbench(){
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+    const p = propAt(S.x + dx, S.y + dy);
+    if (p && p.kind === 'workbench') return true;
+  }
+  return false;
+}
+
+function interact(){
+  if (!S || !S.started || !alive() || modalOpen) return;
+  if (nearWorkbench()){ openCraft(); return; }
+  const p = facingProp();
+  if (p && p.searchable){ searchContainer(p); return; }
+  if (terrAt(S.x + S.dir.x, S.y + S.dir.y) === T.BARRICADE){
+    const bx = S.x + S.dir.x, by = S.y + S.dir.y;
+    if (!hasItem('crowbar')){
+      say('鐵鏈纏得死死的。你需要一根撬棍。','warn');
+      sfx('nope');
+      return;
+    }
+    MAP.terr[by*W+bx] = T.DOOR;
+    S.changes.push({ x:bx, y:by, t:T.DOOR });
+    say('你用撬棍撬斷了鐵鏈，警局的門開了。','good');
+    sfx('unlock');
+    alertNear(bx, by, 9);
+    endTurn();
+    return;
+  }
+  say('這裡沒有可以翻找的東西。','info');
+  sfx('nope');
+}
+
+function searchContainer(p){
+  if (p.searched && !p.locked){ say(`${p.label}已經空了。`,'info'); sfx('nope'); return; }
+  if (p.locked){
+    if (!hasItem('crowbar')){ say(`${p.label}被鐵鏈纏住 —— 需要撬棍。`,'warn'); sfx('nope'); return; }
+    p.locked = null;
+    say(`你用撬棍撬開了${p.label}。`,'good');
+    sfx('unlock');
+    alertNear(p.x, p.y, 8);
+  }
+  const gained = [];
+  for (const e of p.loot){
+    if (e.n <= 0) continue;
+    const got = addItem(e.id, e.n);
+    if (got > 0){ gained.push({ id:e.id, n:got }); e.n -= got; }
+  }
+  p.loot = p.loot.filter(e => e.n > 0);
+  if (p.bp){ learn(p.bp); p.bp = null; }
+  if (p.loot.length === 0) p.searched = true;
+  if (gained.length) say(`在${p.label}裡找到：${gained.map(g => ITEM[g.id].name + '×' + g.n).join('、')}。`,'good');
+  else say(`${p.label}裡剩下的東西背包塞不下了。`,'warn');
+  if (gained.length) sfx('pickup');
+  S.searches++;
+  alertNear(p.x, p.y, 7);
+  endTurn();
+}
+
+function learn(bp){
+  if (S.bp[bp]) return;
+  S.bp[bp] = true;
+  say(`獲得圖紙：${BPNAME[bp]}。回工作臺就能製作。`,'good');
+  sfx('craft');
+}
+
+/* =========================================================================
+   8. 製作
+   ========================================================================= */
+function canCraft(r){
+  if (r.bp && !S.bp[r.bp]) return { ok:false, why:`需要圖紙：${BPNAME[r.bp]}（${r.bpHint}）` };
+  if (r.out === 'radio' && S.radioBuilt) return { ok:false, why:'已經有一臺了' };
+  for (const k in r.cost) if (countOf(k) < r.cost[k]) return { ok:false, why:'材料不足' };
+  if (r.repair){
+    if (!S.weapon && !S.armor) return { ok:false, why:'沒有可以修補的裝備' };
+    const wFull = !S.weapon || S.weapon.dur >= ITEM[S.weapon.id].dur;
+    const aFull = !S.armor || S.armor.dur >= ITEM[S.armor.id].dur;
+    if (wFull && aFull) return { ok:false, why:'裝備狀態良好' };
+    return { ok:true };
+  }
+  if (!hasSpaceFor(r.out)) return { ok:false, why:'背包已滿' };
+  return { ok:true };
+}
+
+function craftRecipe(id){
+  const r = RECIPES.find(x => x.id === id);
+  if (!r) return;
+  const chk = canCraft(r);
+  if (!chk.ok){ say(chk.why,'warn'); sfx('nope'); return; }
+  for (const k in r.cost) removeItem(k, r.cost[k]);
+  if (r.repair){
+    if (S.weapon) S.weapon.dur = ITEM[S.weapon.id].dur;
+    if (S.armor) S.armor.dur = ITEM[S.armor.id].dur;
+    say('你把武器和護甲都補好了。','good');
+    sfx('craft');
+  } else {
+    addItem(r.out, r.n || 1);
+    S.crafted++;
+    if (r.out === 'radio'){
+      S.radioBuilt = true;
+      say('訊號發射器組裝完成。所有喪屍都會聽見它。','good');
+      say('在工作臺按下「啟動訊號」，然後守住 10 回合。','warn');
+    } else {
+      say(`做好了${ITEM[r.out].name}。`,'good');
+    }
+    sfx('craft');
+  }
+  refresh();
+  if (modalOpen) renderCraft();
+  saveGame(true);
+}
+
+function startHoldout(){
+  if (!S || !S.radioBuilt || S.phase !== 'explore') return;
+  S.phase = 'holdout';
+  S.holdoutStart = S.turn;
+  closeModal();
+  /* 訊號招來屍潮：安全屋四面牆被撞開六個缺口 */
+  for (const [bx,by] of [[3,10],[9,10],[4,1],[6,1],[8,1],[12,5]]){
+    MAP.terr[by*W+bx] = T.DOOR;
+    S.changes.push({ x:bx, y:by, t:T.DOOR });
+    MAP.breaches.add(by*W+bx);
+    const mg = MAP.mini.getContext('2d');
+    mg.fillStyle = '#0b0c0e';
+    mg.fillRect(bx, by, 1, 1);
+  }
+  say('你按下開關。電流聲之後，天線亮起。','sys');
+  say('整片街區的喪屍同時抬起頭 —— 它們都知道你在哪了。','bad');
+  say('四面牆被撞開六個缺口。它們從破口灌進來。','bad');
+  say(`守住 ${HOLDOUT_TURNS} 回合，救援就會到。`,'warn');
+  for (let i = 0; i < 4; i++){
+    const type = i === 0 ? 'brute' : i === 2 ? 'spitter' : i === 3 ? 'crawler' : 'walker';
+    const z = spawnAt(holdoutSpawnTile(), type);
+    if (z){ z.speed = i === 0 ? 2 : 1; z.atk += 2; z.frenzy = true; }
+  }
+  alertNear(S.x, S.y, 60);
+  sfx('alarm');
+  refresh();
+  saveGame(true);
+}
+
+/* =========================================================================
+   9. 回合與喪屍 AI
+   ========================================================================= */
+function endTurn(){
+  if (!S || S.phase === 'dead' || S.phase === 'won') return;
+  S.turn++;
+  zombiesAct();
+  if (S.hp <= 0){ die(); return; }
+  waves();
+  if (S.phase === 'holdout' && S.turn - S.holdoutStart >= HOLDOUT_TURNS){ win(); return; }
+  refresh();
+  saveGame(true);
+}
+
+function zombiesAct(){
+  for (const z of S.zombies){
+    if (S.hp <= 0) break;
+    z.cd--;
+    if (z.cd > 0) continue;
+    z.cd = z.speed;
+    zombieThink(z);
+  }
+  S.zombies = S.zombies.filter(z => z.hp > 0);
+}
+
+function zombieThink(z){
+  const dist = Math.abs(S.x - z.x) + Math.abs(S.y - z.y);
+  const playerSafe = S.phase !== 'holdout' && inSafehouse(S.x, S.y);
+  if (!z.alerted && dist <= z.sense && lineClear(z.x, z.y, S.x, S.y)){
+    z.alerted = true;
+    z.memory = 16;
+  }
+  if (!z.alerted && S.phase === 'holdout' && dist < 26){
+    z.alerted = true;
+    z.memory = 99;
+  }
+  if (z.alerted){
+    z.memory--;
+    if (z.range && !playerSafe && dist <= z.range && lineClear(z.x, z.y, S.x, S.y)){
+      hitPlayer(z, true);
+    } else if (dist === 1){
+      hitPlayer(z);
+    } else {
+      const door = ZMAP.safehouse.door;
+      const tx = playerSafe ? door[0] : S.x;
+      const ty = playerSafe ? door[1] + 1 : S.y;
+      if (!(z.x === tx && z.y === ty)){
+        const step = nextStep(z.x, z.y, tx, ty);
+        if (step){
+          const nx = z.x + step[0], ny = z.y + step[1];
+          if (!zombieAt(nx, ny)){ z.x = nx; z.y = ny; }
+        } else {
+          greedyStep(z);
+        }
+      }
+    }
+    if (z.memory <= 0 && dist > z.sense) z.alerted = false;
+  } else if (Math.random() < .20){
+    const [dx, dy] = pick(DIRS);
+    const nx = z.x + dx, ny = z.y + dy;
+    if (!zombieBlocked(nx, ny) && !zombieAt(nx, ny) &&
+        Math.abs(nx - z.home.x) + Math.abs(ny - z.home.y) <= 3){
+      z.x = nx; z.y = ny;
+    }
+  }
+}
+
+function hitPlayer(z, ranged){
+  const def = S.armor ? ITEM[S.armor.id].def : 0;
+  const dmg = Math.max(1, z.atk - (ranged ? Math.floor(def / 2) : def));
+  S.hp -= dmg;
+  say(ranged ? `${z.name}噴出的酸液濺到你身上 —${dmg} 生命。` : `${z.name}撕中了你的手臂 —${dmg} 生命。`, 'bad');
+  sfx('hurt');
+  if (S.armor){
+    S.armor.dur--;
+    if (S.armor.dur <= 0){
+      say(`${ITEM[S.armor.id].name}被扯爛了。`,'bad');
+      S.armor = null;
+    }
+  }
+  alertNear(S.x, S.y, 6);
+}
+
+function alertNear(x, y, r){
+  for (const z of S.zombies){
+    if (Math.hypot(z.x - x, z.y - y) <= r){
+      z.alerted = true;
+      z.memory = Math.max(z.memory, 15);
+    }
+  }
+}
+
+function lineClear(x0, y0, x1, y1){
+  if (Math.abs(x1-x0) + Math.abs(y1-y0) > 14) return false;
+  let dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  const sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  let err = dx - dy, x = x0, y = y0;
+  for (let guard = 0; guard < 64; guard++){
+    if (!(x === x0 && y === y0)){
+      const t = MAP.terr[y*W+x];
+      if (t === T.WALL || t === T.BARRICADE) return false;
+      const p = MAP.props.get(y*W+x);
+      if (p && p.block) return false;
+    }
+    if (x === x1 && y === y1) return true;
+    const e2 = 2 * err;
+    if (e2 > -dy){ err -= dy; x += sx; }
+    if (e2 < dx){ err += dx; y += sy; }
+  }
+  return false;
+}
+
+const bfsQ = new Int32Array(W * H);
+const bfsPrev = new Int32Array(W * H);
+const bfsMark = new Int32Array(W * H);
+let bfsStamp = 0;
+
+function nextStep(sx, sy, tx, ty){
+  if (sx === tx && sy === ty) return null;
+  if (Math.abs(tx-sx) + Math.abs(ty-sy) > 70) return null;
+  bfsStamp++;
+  const occ = new Set();
+  for (const z of S.zombies) occ.add(z.y*W + z.x);
+  const start = sy*W + sx, goal = ty*W + tx;
+  let head = 0, tail = 0;
+  bfsQ[tail++] = start;
+  bfsMark[start] = bfsStamp;
+  bfsPrev[start] = -1;
+  while (head < tail){
+    const cur = bfsQ[head++];
+    if (cur === goal){
+      let n = cur;
+      while (bfsPrev[n] !== -1 && bfsPrev[n] !== start) n = bfsPrev[n];
+      if (bfsPrev[n] === -1) return null;
+      return [n % W - sx, ((n / W) | 0) - sy];
+    }
+    if (head > 2400) break;
+    const cx = cur % W, cy = (cur / W) | 0;
+    for (const [dx, dy] of DIRS){
+      const nx = cx + dx, ny = cy + dy;
+      if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      const ni = ny*W + nx;
+      if (bfsMark[ni] === bfsStamp) continue;
+      if (ni !== goal){
+        if (zombieBlocked(nx, ny)) continue;
+        if (occ.has(ni)) continue;
+      }
+      bfsMark[ni] = bfsStamp;
+      bfsPrev[ni] = cur;
+      bfsQ[tail++] = ni;
+      if (tail >= W*H) break;
+    }
+  }
+  return null;
+}
+
+function greedyStep(z){
+  const dx = Math.sign(S.x - z.x), dy = Math.sign(S.y - z.y);
+  const tries = Math.abs(S.x - z.x) >= Math.abs(S.y - z.y)
+    ? [[dx,0],[0,dy]] : [[0,dy],[dx,0]];
+  for (const [sx, sy] of tries){
+    if (!sx && !sy) continue;
+    const nx = z.x + sx, ny = z.y + sy;
+    if (!zombieBlocked(nx, ny) && !zombieAt(nx, ny)){ z.x = nx; z.y = ny; return; }
+  }
+}
+
+function farStreetTile(minDist){
+  const cands = MAP.spawnTiles.filter(([x,y]) =>
+    Math.abs(x - S.x) + Math.abs(y - S.y) >= minDist &&
+    !blocked(x,y) && !zombieAt(x,y));
+  return cands.length ? pick(cands) : null;
+}
+
+function nearStreetTile(minDist, maxDist){
+  const cands = MAP.spawnTiles.filter(([x,y]) => {
+    const d = Math.abs(x - S.x) + Math.abs(y - S.y);
+    return d >= minDist && d <= maxDist && !blocked(x,y) && !zombieAt(x,y);
+  });
+  return cands.length ? pick(cands) : farStreetTile(minDist);
+}
+
+/* 堅守時它們從六個破口與大門灌進來：出生點都在缺口內外 */
+const HOLDOUT_SPOTS = [
+  [3,9],[4,9],[5,9],[6,9],[7,9],[8,9],[9,9],
+  [3,11],[9,11],[6,11],[6,12],
+  [4,2],[6,2],[8,2],[4,0],[6,0],[8,0],
+  [11,5],[13,5],[13,7],
+];
+function holdoutSpawnTile(){
+  const cands = HOLDOUT_SPOTS.filter(([x,y]) =>
+    !blocked(x,y) && !zombieAt(x,y) &&
+    Math.abs(x - S.x) + Math.abs(y - S.y) >= 3);
+  return cands.length ? pick(cands) : farStreetTile(4);
+}
+
+function spawnAt(tile, type){
+  if (!tile) return null;
+  return spawnZombie(type, tile[0], tile[1]);
+}
+
+function waves(){
+  if (S.phase === 'holdout'){
+    const left = HOLDOUT_TURNS - (S.turn - S.holdoutStart);
+    if (left <= 0) return;
+    if (S.zombies.length < 40){
+      for (let i = 0; i < 5; i++){
+        const type = (i === 2 && left % 2 === 0) ? 'spitter' : (Math.random() < .22 ? 'crawler' : 'walker');
+        const z = spawnAt(holdoutSpawnTile(), type);
+        if (z){ z.speed = 1; z.atk += 2; z.frenzy = true; }
+      }
+      if (left % 3 === 0){
+        const zb = spawnAt(holdoutSpawnTile(), 'brute');
+        if (zb){ zb.speed = 2; zb.atk += 2; zb.frenzy = true; }
+      }
+      if (left === 4){
+        const zz = spawnAt(holdoutSpawnTile(), 'boss');
+        if (zz){ zz.speed = 1; zz.atk += 2; zz.frenzy = true; }
+      }
+    }
+  } else if (S.turn > 0 && S.turn % 14 === 0 && S.zombies.length < 22){
+    spawnAt(farStreetTile(13), Math.random() < .3 ? 'crawler' : 'walker');
+    say('遠處傳來拖曳的腳步聲 —— 有東西被聲音引來了。','warn');
+  }
+}
+
+function die(){
+  S.phase = 'dead';
+  S.hp = 0;
+  say('你的膝蓋先著地。街上很安靜。','bad');
+  sfx('lose');
+  stopMusic();
+  clearSave();
+  refresh();
+  showGameOver(false);
+}
+
+function win(){
+  S.phase = 'won';
+  say('直升機的探照燈掃過屋頂。你活下來了。','good');
+  sfx('win');
+  stopMusic();
+  clearSave();
+  refresh();
+  showGameOver(true);
+}
+
+/* =========================================================================
+   10. 介面
+   ========================================================================= */
+function refresh(){
+  if (!S) return;
+  updateCamera();
+  draw();
+  renderUI();
+}
+
+function renderUI(){
+  if (!S) return;
+  $('charName').textContent = '倖存者 · ' + S.name;
+  $('turnLabel').textContent = S.turn;
+  $('phaseLabel').textContent =
+    S.phase === 'holdout' ? '堅守階段' :
+    S.phase === 'dead' ? '已陣亡' :
+    S.phase === 'won' ? '已獲救' : '搜刮階段';
+
+  const z = zoneAt(S.x, S.y);
+  $('posLabel').textContent = z ? z.name : '街道';
+
+  const pct = clamp(S.hp / S.maxHp, 0, 1);
+  const hpFill = $('hpFill');
+  hpFill.style.width = (pct * 100) + '%';
+  hpFill.style.background = pct > .6 ? '#83c46c' : pct > .3 ? '#e0a13c' : '#d96655';
+  $('hpText').textContent = `${Math.max(0, Math.ceil(S.hp))} / ${S.maxHp}`;
+
+  const w = S.weapon ? ITEM[S.weapon.id] : null;
+  $('weaponName').textContent = w ? w.name : '赤手空拳';
+  $('weaponStat').textContent = 'ATK ' + (w ? w.atk : 2);
+  $('weaponDur').style.width = S.weapon ? clamp(S.weapon.dur / w.dur, 0, 1) * 100 + '%' : '0%';
+  $('weaponDur').style.background = S.weapon && S.weapon.dur / w.dur < .25 ? '#d96655' : '#8a9aa8';
+
+  const a = S.armor ? ITEM[S.armor.id] : null;
+  $('armorName').textContent = a ? a.name : '無';
+  $('armorStat').textContent = 'DEF ' + (a ? a.def : 0);
+  $('armorDur').style.width = S.armor ? clamp(S.armor.dur / a.dur, 0, 1) * 100 + '%' : '0%';
+  $('armorDur').style.background = S.armor && S.armor.dur / a.dur < .25 ? '#d96655' : '#8a9aa8';
+
+  renderBag();
+  renderObjectives();
+  renderLog();
+
+  const h = computeHint();
+  $('hintText').textContent = h.text;
+  $('hintbar').classList.toggle('alert', !!h.alert);
+}
+
+function renderBag(){
+  const grid = $('bagGrid');
+  let html = '';
+  for (let i = 0; i < CAP; i++){
+    const s = S.bag[i];
+    if (!s){ html += '<div class="slot empty"></div>'; continue; }
+    const d = ITEM[s.id];
+    const cnt = isStack(d) && s.n > 1 ? `<b class="cnt">${s.n}</b>` : '';
+    const dur = (d.type === 'weapon' || d.type === 'armor')
+      ? `<i class="durbar"><b style="width:${clamp(s.dur / d.dur, 0, 1) * 100}%"></b></i>` : '';
+    html += `<div class="slot" data-bag="${i}" title="${d.name} · ${d.desc}">
+      <span class="x" data-drop="${i}" title="丟棄">×</span>
+      <span class="g" style="color:${d.color}">${d.glyph}</span>${cnt}${dur}</div>`;
+  }
+  grid.innerHTML = html;
+  $('bagCount').textContent = `${S.bag.length} / ${CAP}`;
+}
+
+function renderObjectives(){
+  const left = Math.max(0, HOLDOUT_TURNS - (S.turn - S.holdoutStart));
+  const steps = [
+    { done: S.crafted > 0, t:'在工作臺做出第一件裝備' },
+    { done: !!S.bp.bp_radio, t:'在警局找到「訊號發射器圖紙」' },
+    { done: S.radioBuilt || (countOf('antenna') >= 1 && countOf('circuit') >= 1 && countOf('battery') >= 2 && countOf('wire') >= 3),
+      t:'集齊天線 ×1、電路板 ×1、電池 ×2、電線 ×3' },
+    { done: S.radioBuilt, t:'在工作臺製作訊號發射器' },
+    { done: S.phase === 'won', active: S.phase === 'holdout',
+      t: S.phase === 'holdout' ? `堅守中 —— 還剩 ${left} 回合` : '啟動訊號，堅守 10 回合' },
+  ];
+  $('objList').innerHTML = steps.map(s =>
+    `<li class="${s.done ? 'done' : ''}${s.active ? ' active' : ''}"><span class="mk">${s.done ? '✓' : '○'}</span><span>${s.t}</span></li>`
+  ).join('');
+
+  const parts = [
+    ['antenna', 1, '天線'],
+    ['circuit', 1, '電路板'],
+    ['battery', 2, '電池'],
+    ['wire', 3, '電線'],
+  ];
+  $('partsLine').innerHTML = S.radioBuilt
+    ? (S.phase === 'holdout'
+        ? `<span class="ok">訊號發射器運行中</span><span class="no">· 救援還有 ${left} 回合</span>`
+        : '<span class="ok">訊號發射器已組裝</span><span class="no">· 啟動前還可以補給</span>')
+    : parts.map(([id, need, label]) => {
+        const n = countOf(id);
+        return `<span class="${n >= need ? 'ok' : 'no'}">${label} <b>${n}/${need}</b></span>`;
+      }).join('');
+}
+
+function renderLog(){
+  $('logTurn').textContent = '最新在上';
+  $('logList').innerHTML = S.log.slice(0, 16).map(l =>
+    `<li class="k-${l.kind}"><span class="tn">${String(l.turn).padStart(2,'0')}</span>${l.text}</li>`
+  ).join('');
+}
+
+function computeHint(){
+  if (!S.started) return { text:'準備好了就點「進入廢墟」。', alert:false };
+  if (S.phase === 'dead') return { text:'你倒下了。點「重新開始」再來一次。', alert:true };
+  if (S.phase === 'won') return { text:'你活下來了。直升機的旋翼聲蓋過整條街。', alert:false };
+  if (S.phase === 'holdout'){
+    const left = Math.max(0, HOLDOUT_TURNS - (S.turn - S.holdoutStart));
+    return { text:`堅守！救援還有 ${left} 回合 —— 守住門口，別讓它們圍住你。`, alert:true };
+  }
+  if (inSafehouse(S.x, S.y) && S.zombies.some(z => !inSafehouse(z.x, z.y) &&
+      Math.abs(z.x - S.x) + Math.abs(z.y - S.y) <= 4)){
+    return { text:'牠們在門外徘徊 —— 啟動訊號之前，安全屋是安全的。', alert:false };
+  }
+  if (nearWorkbench()) return { text:'按 E 打開工作臺：武器、護甲、急救包、訊號發射器。', alert:false };
+  const p = facingProp();
+  if (p && p.searchable){
+    if (p.locked) return { text: hasItem('crowbar') ? `按 E 用撬棍撬開${p.label}。` : `${p.label}鎖著 —— 需要一根撬棍。`, alert:true };
+    return { text: p.searched ? `${p.label}已經被翻空了。` : `按 E 搜索${p.label}。`, alert:false };
+  }
+  if (terrAt(S.x + S.dir.x, S.y + S.dir.y) === T.BARRICADE){
+    return { text: hasItem('crowbar') ? '按 E 用撬棍撬斷鐵鏈。' : '大門被鐵鏈鎖死 —— 需要撬棍。', alert:true };
+  }
+  if (S.radioBuilt) return { text:'訊號發射器已就緒 —— 回安全屋工作臺啟動它。', alert:false };
+  return { text:'WASD 移動（撞向喪屍即攻擊） · E 搜索 · F 進食 · 空格等待', alert:false };
+}
+
+/* =========================================================================
+   11. 彈窗
+   ========================================================================= */
+let modalLock = false;
+
+function openModal(html, locked){
+  $('modal').innerHTML = html;
+  $('modal').classList.remove('hidden');
+  modalOpen = true;
+  modalLock = !!locked;
+}
+function closeModal(){
+  $('modal').classList.add('hidden');
+  modalOpen = false;
+  modalLock = false;
+}
+
+function showIntroModal(){
+  modalLock = true;
+  const saved = loadSave();
+  const defaultName = saved ? sanitizeName(saved.name) : PLAYER_NAME;
+  const saveBox = saved ? `<div class="savebox">
+    <div class="saveinfo">
+      <span class="badge">上次進度</span>
+      <b>${sanitizeName(saved.name)}</b> · 第 ${Math.max(0, saved.turn | 0)} 回合 ·
+      生命 ${clamp(Number(saved.hp) || 0, 0, 100)}/100 ·
+      ${saved.phase === 'holdout' ? '堅守階段' : '搜刮階段'}
+    </div>
+    <button class="btn primary" data-act="continue">繼續進度</button>
+  </div>` : '';
+  $('modal').innerHTML = `<div class="modal-card">
+    <div class="hero">
+      <div class="big">☣</div>
+      <div><h2>屍潮餘燼</h2><p>DEAD BLOCK · 近戰生存 · 零動畫</p></div>
+    </div>
+    <div class="story">
+      第 21 天。城市已經淪陷，街上只剩下喪屍和廢鐵。<br>
+      你叫<b>${defaultName}</b>，一個還沒被咬的普通人。安全屋裡有工作臺，街對面是超市、五金店、加油站、醫院、警局和倉庫 ——
+      那裡有零件、食物、圖紙，也有喪屍。<br><br>
+      收集零件，在<b>工作臺</b>自己製作武器與護甲；吃下食物立刻回復生命。
+      最後做出<b>訊號發射器</b>，啟動它，<b>守住 10 回合</b>等救援。
+    </div>
+    ${saveBox}
+    <div class="namebox">
+      <label for="nameInput">你的名字</label>
+      <input id="nameInput" maxlength="8" value="${defaultName}" autocomplete="off" spellcheck="false">
+      <button class="btn ${saved ? '' : 'primary'}" data-act="startgame">進入廢墟</button>
+      <span class="savehint">${saved ? '新遊戲會覆蓋上次進度 · ' : ''}每次行動後自動存檔</span>
+    </div>
+    <div class="mcols">
+      <div class="mcol">
+        <h3>怎麼玩</h3>
+        <p><b>WASD / 方向鍵</b> 移動，撞向喪屍就是攻擊。<br>
+        <b>E</b> 搜索箱子、櫃子、工作臺。<br>
+        <b>F</b> 吃下最好的食物。<br>
+        <b>空格</b> 原地等一回合。<br>
+        點擊背包裡的物品可以食用或裝備。<br>
+        <b>安全屋在啟動訊號前是安全區</b>，喪屍只會在門外徘徊。</p>
+      </div>
+      <div class="mcol">
+        <h3>零動畫</h3>
+        <p>本作是回合制：你走一步，喪屍才動一次。所有畫面都是靜態向量繪製，
+        <b>沒有補間、沒有動畫幀、沒有貼圖序列</b>，一切變化在一回合內立即結算。<br>
+        武器和護甲有耐久，壞了要在工作臺修補。</p>
+      </div>
+    </div>
+    <div class="mfoot"><span class="savehint">進度保存在這台裝置的瀏覽器裡；右上角「存」可手動保存。</span></div>
+  </div>`;
+  $('modal').classList.remove('hidden');
+  modalOpen = true;
+}
+
+function showHelp(){
+  openModal(`<div class="modal-card">
+    <div class="mc-head"><div><h2>怎麼活下去</h2><p>回合制 · 近戰 · 自製裝備</p></div><button class="mc-x" data-act="close">×</button></div>
+    <div class="mcols" style="margin-top:12px">
+      <div class="mcol">
+        <h3>戰鬥</h3>
+        <p>走向喪屍就會攻擊它。你每次行動算一回合，之後喪屍才會行動。<br>
+        行屍每 2 回合動一次，爬屍每回合都動，巨屍每 3 回合動一次但很痛。<br>
+        被圍住會同時挨好幾下 —— 退到門口或走廊，一次只讓一隻貼上來。<br>
+        啟動訊號前，喪屍進不了安全屋；啟動後四面牆會被撞開六個缺口。</p>
+      </div>
+      <div class="mcol">
+        <h3>搜刮與製作</h3>
+        <p>站在櫃子或箱子旁邊，面向它按 E 搜索。搜索會發出聲音，引來附近的喪屍。<br>
+        零件：廢鐵、木板、布條、電線、膠帶、玻璃瓶、電池、電路板、天線。<br>
+        食物直接回復生命。武器護甲會掉耐久，工作臺可以用廢鐵 + 膠帶修滿。</p>
+      </div>
+      <div class="mcol">
+        <h3>關鍵路線</h3>
+        <p>撬棍（廢鐵 3 + 木板 1）能撬開警局的鐵鏈。<br>
+        警局鐵櫃：天線 + 訊號發射器圖紙；五金店鐵櫃：電路板。<br>
+        醫院藥櫃與加油站：電池。集齊後在工作臺做發射器，啟動，守 10 回合。</p>
+      </div>
+      <div class="mcol">
+        <h3>提示</h3>
+        <p>背包只有 12 格，裝不下就回工作臺把材料用掉。<br>
+        生命值高時不必急著吃東西；低血量進食要花一回合，先退到安全位置。<br>
+        製作不消耗回合，但吃東西會。<br>
+        每次行動後自動存檔；標題畫面可以「繼續進度」，右上角 <b>存</b> 可手動保存。<br>
+        右上角 <b>♫</b> 開關背景音樂，<b>♪</b> 開關音效。</p>
+      </div>
+    </div>
+    <div class="mfoot"><button class="btn" data-act="close">知道了</button></div>
+  </div>`, false);
+}
+
+function recipeRow(r){
+  const locked = !!(r.bp && !S.bp[r.bp]);
+  const chk = canCraft(r);
+  const out = r.repair ? { color:'#8a9aa8', glyph:'修' } : ITEM[r.out];
+  const name = locked ? '？？？' : (r.repair ? '修補裝備' : ITEM[r.out].name);
+  const why = (!chk.ok && !locked && chk.why !== '材料不足')
+    ? `<span class="badge">${chk.why}</span>` : '';
+  const cost = Object.entries(r.cost).map(([id, n]) => {
+    const have = countOf(id);
+    return `<span class="${have >= n ? 'c-ok' : 'c-no'}">${ITEM[id].name} ${have}/${n}</span>`;
+  }).join(' · ');
+  return `<div class="recipe ${chk.ok ? '' : 'locked'}">
+    <div class="r-icon" style="color:${out.color}">${locked ? '?' : out.glyph}</div>
+    <div>
+      <div class="r-name">${name} <span class="tag">${r.note}</span>${locked ? `<span class="badge">圖紙：${r.bpHint}</span>` : why}</div>
+      <div class="r-cost">${cost}</div>
+      <div class="r-desc">${r.desc}</div>
+    </div>
+    <button class="btn r-btn" data-act="craft" data-id="${r.id}" ${chk.ok ? '' : 'disabled'}>製作</button>
+  </div>`;
+}
+
+function renderCraft(){
+  const groups = [
+    ['武器與護甲', ['bat_nail','machete','axe_fire','crowbar','cloth_armor','scrap_armor','riot_armor']],
+    ['補給與設備', ['medkit','repair','radio']],
+  ];
+  const rows = groups.map(([title, ids]) =>
+    `<div class="rgroup">${title}</div>` +
+    ids.map(id => recipeRow(RECIPES.find(r => r.id === id))).join('')
+  ).join('');
+  const canStart = S.radioBuilt && S.phase === 'explore';
+  const hold = S.phase === 'holdout';
+  openModal(`<div class="modal-card">
+    <div class="mc-head">
+      <div><h2>工作臺</h2><p>安全屋 · 把廢墟裡的零件變成活命的東西</p></div>
+      <button class="mc-x" data-act="close">×</button>
+    </div>
+    <div class="recipes">${rows}</div>
+    ${canStart ? `<div class="warnbox">
+      <p><b>訊號發射器已就緒。</b>啟動後整片街區的喪屍都會朝安全屋聚集 —— 你要在門口守住 ${HOLDOUT_TURNS} 回合。</p>
+      <button class="btn danger" data-act="start">啟動訊號</button>
+    </div>` : ''}
+    ${hold ? `<p style="margin-top:14px;color:#e0b25a;font-size:12px">訊號已經發出。堅守 ${Math.max(0, HOLDOUT_TURNS - (S.turn - S.holdoutStart))} 回合。</p>` : ''}
+  </div>`, false);
+}
+
+function openCraft(){
+  if (!S || !S.started || !alive()) return;
+  ensureAudio();
+  renderCraft();
+  sfx('equip');
+}
+
+function showGameOver(won){
+  const stats = `<div class="statgrid">
+    <div class="stat"><b>${S.turn}</b><span>存活回合</span></div>
+    <div class="stat"><b>${S.kills}</b><span>擊殺喪屍</span></div>
+    <div class="stat"><b>${S.crafted}</b><span>製作裝備</span></div>
+  </div>`;
+  openModal(`<div class="modal-card"><div class="over">
+    <div class="big" style="color:${won ? '#83c46c' : '#d96655'}">${won ? '✓' : '✕'}</div>
+    <h2>${won ? '直升機來了' : '你倒下了'}</h2>
+    <p>${won ? `${S.name}，救援隊把你從這片街區帶走。城市還在燃燒，但你活著。` : `${S.name}，第 ${S.turn} 回合，你在安全屋附近失去了意識。`}</p>
+    ${stats}
+    <button class="btn primary" data-act="restart">重新開始</button>
+  </div></div>`, true);
+}
+
+function restart(){
+  const name = S ? S.name : PLAYER_NAME;
+  closeModal();
+  modalLock = false;
+  newGame(false, name);
+  say('你重新睜開眼睛。街區還是老樣子。','sys');
+  refresh();
+  saveGame(true);
+  canvas.focus();
+}
+
+/* =========================================================================
+   12. 輸入
+   ========================================================================= */
+window.addEventListener('keydown', (e) => {
+  ensureAudio();
+  if (modalOpen){
+    if (e.key === 'Escape' && !modalLock) closeModal();
+    return;
+  }
+  if (!S || !S.started) return;
+  const k = e.key.toLowerCase();
+  if (k === 'arrowup' || k === 'w'){ e.preventDefault(); tryMove(0,-1); }
+  else if (k === 'arrowdown' || k === 's'){ e.preventDefault(); tryMove(0,1); }
+  else if (k === 'arrowleft' || k === 'a'){ e.preventDefault(); tryMove(-1,0); }
+  else if (k === 'arrowright' || k === 'd'){ e.preventDefault(); tryMove(1,0); }
+  else if (k === 'e'){ interact(); }
+  else if (k === ' '){ e.preventDefault(); doWait(); }
+  else if (k === 'f'){ eatBest(); }
+  else if (k === '?' || k === 'h'){ showHelp(); }
+});
+
+canvas.addEventListener('click', (e) => {
+  ensureAudio();
+  if (!S || !S.started || modalOpen || !alive()) return;
+  const r = canvas.getBoundingClientRect();
+  const sx = (e.clientX - r.left) / r.width * VIEW_W;
+  const sy = (e.clientY - r.top) / r.height * VIEW_H;
+  /* 點在小地圖上不要當成走路 */
+  if (sx > VIEW_W - 150 && sy < 110) return;
+  const x = Math.floor((sx + CAM.x) / TILE);
+  const y = Math.floor((sy + CAM.y) / TILE);
+  if (x === S.x && y === S.y){ interact(); return; }
+  if (Math.abs(x - S.x) + Math.abs(y - S.y) === 1) tryMove(x - S.x, y - S.y);
+  canvas.focus();
+});
+
+$('bagGrid').addEventListener('click', (e) => {
+  const drop = e.target.closest('[data-drop]');
+  if (drop){ e.stopPropagation(); dropItem(+drop.dataset.drop); return; }
+  const slot = e.target.closest('[data-bag]');
+  if (slot) useBag(+slot.dataset.bag);
+});
+
+$('modal').addEventListener('click', (e) => {
+  if (e.target.id === 'modal' && !modalLock){ closeModal(); return; }
+  const btn = e.target.closest('[data-act]');
+  if (!btn) return;
+  const act = btn.dataset.act;
+  ensureAudio();
+  if (act === 'close') closeModal();
+  else if (act === 'startgame'){
+    const inp = $('nameInput');
+    beginRun(inp ? inp.value : '阿鐵');
+  }
+  else if (act === 'continue'){
+    const d = loadSave();
+    if (d) continueGame(d);
+    else showIntroModal();
+  }
+  else if (act === 'craft') craftRecipe(btn.dataset.id);
+  else if (act === 'start') startHoldout();
+  else if (act === 'restart') restart();
+  else if (act === 'help') showHelp();
+});
+
+$('helpBtn').addEventListener('click', () => { ensureAudio(); showHelp(); });
+$('saveBtn').addEventListener('click', () => {
+  ensureAudio();
+  if (!S || !S.started) return;
+  if (saveGame(false)){ sfx('pickup'); }
+  renderUI();
+});
+$('muteBtn').addEventListener('click', () => {
+  MUTED = !MUTED;
+  S.muted = MUTED;
+  $('muteBtn').classList.toggle('off', MUTED);
+  $('muteBtn').title = MUTED ? '音效已關閉' : '音效開關';
+  if (!MUTED) { ensureAudio(); sfx('pickup'); }
+});
+$('musicBtn').addEventListener('click', () => {
+  MUSIC_ON = !MUSIC_ON;
+  $('musicBtn').classList.toggle('off', !MUSIC_ON);
+  $('musicBtn').title = MUSIC_ON ? '背景音樂已開啟' : '背景音樂已關閉';
+  ensureAudio();
+  if (musicBus && AC){
+    musicBus.gain.cancelScheduledValues(AC.currentTime);
+    musicBus.gain.setTargetAtTime(MUSIC_ON ? .5 : 0, AC.currentTime, .25);
+  }
+});
+
+/* =========================================================================
+   13. 啟動 + 調試接口
+   ========================================================================= */
+newGame(true);
+
+window.addEventListener('beforeunload', () => { saveGame(true); });
+
+window.__G = {
+  get S(){ return S; },
+  get MAP(){ return MAP; },
+  T, ITEM, RECIPES, ZOMBIES, DIRS, HOLDOUT_TURNS, CAP, W, H, VIEW_W, VIEW_H, CAM, ZONES,
+  newGame, refresh, draw, renderUI, updateCamera,
+  tryMove, doWait, interact, interactAt: null,
+  craftRecipe, canCraft, startHoldout, eatBest, useBag, dropItem,
+  addItem, removeItem, countOf, hasItem, say, learn,
+  saveGame, loadSave, clearSave, continueGame, beginRun, sanitizeName, SAVE_KEY,
+  nextStep, blocked, propAt, terrAt, zombieAt, zoneAt,
+  searchContainer, openCraft, showHelp, closeModal,
+  teleport(x,y){ S.x = x; S.y = y; refresh(); },
+  spawnZombie, endTurn,
+  music(){ return { on: MUSIC_ON, timer: !!musicTimer, bus: !!musicBus, drone: droneOn }; },
+  stats(){
+    return {
+      turn:S.turn, hp:S.hp, phase:S.phase, kills:S.kills, crafted:S.crafted,
+      bag:S.bag.map(b => ({ id:b.id, n:b.n, dur:b.dur })),
+      weapon:S.weapon, armor:S.armor, x:S.x, y:S.y,
+      zombies:S.zombies.length, radioBuilt:S.radioBuilt,
+      bp:Object.keys(S.bp), holdoutStart:S.holdoutStart,
+    };
+  },
+};
+
+})();
+</script>
+</body>
+</html>
