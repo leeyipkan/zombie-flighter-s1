@@ -2,7 +2,7 @@
 
 純 HTML 的回合制喪屍生存遊戲。單檔案、零依賴、零外部資源、**零動畫**。
 
-**線上玩：<https://leeyipkan.github.io/>**
+**線上玩：<https://leeyipkan.github.io/zombie-flighter-s1/>**
 
 ![遊戲畫面](screenshots/02-gameplay.png)
 
