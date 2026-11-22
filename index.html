@@ -1415,6 +1415,23 @@ function hasSpaceFor(id){
   if (isStack(d)) return !!S.bag.find(s => s.id === id) || S.bag.length < CAP;
   return S.bag.length < CAP;
 }
+/* 合成後背包是否放得下：算進「材料整格被吃掉後空出的格子」與「同類堆疊合併」 */
+function bagSpaceAfterCraft(id, cost){
+  const d = ITEM[id];
+  if (isStack(d)){
+    const existing = S.bag.find(s => s.id === id);
+    if (existing){
+      const use = Math.min(existing.n, cost[id] || 0);
+      if (existing.n - use > 0) return true;
+    }
+  }
+  let freed = 0;
+  for (const s of S.bag){
+    const need = cost[s.id] || 0;
+    if (need > 0 && need >= s.n) freed++;
+  }
+  return (S.bag.length - freed) < CAP;
+}
 
 function dropItem(i){
   const s = S.bag[i];
@@ -1486,6 +1503,12 @@ function eatBest(){
 function stashCap(){
   const lv = clamp(S.stashLv | 0, 1, STASH_CAPS.length);
   return STASH_CAPS[lv - 1];
+}
+function stashHasSpaceFor(id){
+  const d = ITEM[id];
+  if (!d) return false;
+  if (isStack(d)) return !!S.stash.find(s => s.id === id) || S.stash.length < stashCap();
+  return S.stash.length < stashCap();
 }
 function stashCount(id){
   let n = 0;
@@ -1966,7 +1989,7 @@ function learn(bp){
 function canCraft(r){
   if (r.bp && !S.bp[r.bp]) return { ok:false, why:`需要圖紙：${BPNAME[r.bp]}（${r.bpHint}）` };
   if (r.out === 'radio' && S.radioBuilt) return { ok:false, why:'已經有一臺了' };
-  for (const k in r.cost) if (countOf(k) < r.cost[k]) return { ok:false, why:'材料不足' };
+  for (const k in r.cost) if (countAny(k) < r.cost[k]) return { ok:false, why:'材料不足（背包＋儲物櫃）' };
   if (r.repair){
     if (!S.weapon && !S.armor) return { ok:false, why:'沒有可以修補的裝備' };
     const wFull = !S.weapon || S.weapon.dur >= ITEM[S.weapon.id].dur;
@@ -1974,7 +1997,12 @@ function canCraft(r){
     if (wFull && aFull) return { ok:false, why:'裝備狀態良好' };
     return { ok:true };
   }
-  if (!hasSpaceFor(r.out)) return { ok:false, why:'背包已滿' };
+  const fitsBag = bagSpaceAfterCraft(r.out, r.cost);
+  if (r.out === 'radio'){
+    if (!fitsBag) return { ok:false, why:'背包至少要留一格給發射器' };
+    return { ok:true };
+  }
+  if (!fitsBag && !stashHasSpaceFor(r.out)) return { ok:false, why:'背包與儲物櫃都滿了' };
   return { ok:true };
 }
 
@@ -1983,21 +2011,29 @@ function craftRecipe(id){
   if (!r) return;
   const chk = canCraft(r);
   if (!chk.ok){ say(chk.why,'warn'); sfx('nope'); return; }
-  for (const k in r.cost) removeItem(k, r.cost[k]);
+  /* 先扣背包、再扣儲物櫃，工作臺不用兩邊搬 */
+  for (const k in r.cost) consumeAny(k, r.cost[k]);
   if (r.repair){
     if (S.weapon) S.weapon.dur = ITEM[S.weapon.id].dur;
     if (S.armor) S.armor.dur = ITEM[S.armor.id].dur;
     say('你把武器和護甲都補好了。','good');
     sfx('craft');
   } else {
-    addItem(r.out, r.n || 1);
+    const outN = r.n || 1;
+    let placed = addItem(r.out, outN);
+    let toStash = false;
+    if (!placed && r.out !== 'radio'){
+      placed = addToStash(r.out, outN);
+      toStash = placed > 0;
+    }
+    if (!placed){ say('沒有空間放成品，先清一格。','bad'); sfx('nope'); return; }
     S.crafted++;
     if (r.out === 'radio'){
       S.radioBuilt = true;
       say('訊號發射器組裝完成。所有喪屍都會聽見它。','good');
       say('在工作臺按下「啟動訊號」，然後守住 10 回合。','warn');
     } else {
-      say(`做好了${ITEM[r.out].name}。`,'good');
+      say(`做好了${ITEM[r.out].name}${toStash ? '（放入儲物櫃）' : ''}。`,'good');
     }
     sfx('craft');
   }
@@ -2527,11 +2563,12 @@ function recipeRow(r){
   const chk = canCraft(r);
   const out = r.repair ? { color:'#8a9aa8', glyph:'修' } : ITEM[r.out];
   const name = locked ? '？？？' : (r.repair ? '修補裝備' : ITEM[r.out].name);
-  const why = (!chk.ok && !locked && chk.why !== '材料不足')
+  const why = (!chk.ok && !locked && chk.why.indexOf('材料不足') !== 0)
     ? `<span class="badge">${chk.why}</span>` : '';
   const cost = Object.entries(r.cost).map(([id, n]) => {
-    const have = countOf(id);
-    return `<span class="${have >= n ? 'c-ok' : 'c-no'}">${ITEM[id].name} ${have}/${n}</span>`;
+    const have = countAny(id);
+    const inStash = stashCount(id);
+    return `<span class="${have >= n ? 'c-ok' : 'c-no'}">${ITEM[id].name} ${have}/${n}${inStash ? ` <span class="dim">櫃${inStash}</span>` : ''}</span>`;
   }).join(' · ');
   return `<div class="recipe ${chk.ok ? '' : 'locked'}">
     <div class="r-icon" style="color:${out.color}">${locked ? '?' : out.glyph}</div>
@@ -2557,7 +2594,7 @@ function renderCraft(){
   const hold = S.phase === 'holdout';
   openModal(`<div class="modal-card">
     <div class="mc-head">
-      <div><h2>工作臺</h2><p>安全屋 · 把廢墟裡的零件變成活命的東西</p></div>
+      <div><h2>工作臺</h2><p>安全屋 · 材料自動從背包與儲物櫃取用（先扣背包）</p></div>
       <button class="mc-x" data-act="close">×</button>
     </div>
     <div class="recipes">${rows}</div>

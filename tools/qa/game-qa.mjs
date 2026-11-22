@@ -213,11 +213,12 @@ reset();
   for (const id of ['wood','scrap','cloth','tape','wire','bottle','battery','circuit','antenna']) G.addItem(id,1);
   G.addItem('can',1); G.addItem('bread',1); G.addItem('bat_wood',1);
   give({ wood:2, scrap:2, tape:1 });
+  for (let i=0;i<24;i++) G.addToStash('machete', 1, 40);
   const b2 = JSON.stringify(S.bag);
   const chkFull = G.canCraft(G.RECIPES.find(r => r.id === 'bat_nail'));
   G.craftRecipe('bat_nail');
-  check('滿包時拒絕製作', chkFull.ok === false, chkFull.why);
-  check('滿包時不消耗材料', JSON.stringify(S.bag) === b2);
+  check('背包與櫃子都滿時拒絕製作', chkFull.ok === false, chkFull.why);
+  check('拒絕時不消耗材料', JSON.stringify(S.bag) === b2);
 
   reset(); S = G.S; clearBag(); give({ scrap:4, wood:2, tape:2 });
   check('消防斧預設鎖定', G.canCraft(G.RECIPES.find(r => r.id === 'axe_fire')).ok === false);
@@ -620,6 +621,64 @@ reset();
   G.openStash();
   check('可以打開儲物櫃面板', !document.getElementById('modal').classList.contains('hidden'));
   G.closeModal();
+}
+
+/* ---------------- 12. workbench uses stash ---------------- */
+section('工作臺直接取用櫃內材料');
+reset();
+{
+  const S = G.S;
+  const nail = G.RECIPES.find(r => r.id === 'bat_nail');
+  S.bag.length = 0; S.stash.length = 0; S.stashLv = 1;
+  G.addItem('wood', 1); G.addToStash('wood', 1);
+  G.addItem('scrap', 1); G.addToStash('scrap', 1);
+  G.addItem('tape', 1);
+  check('材料分在背包與櫃子也能合成', G.canCraft(nail).ok === true, G.canCraft(nail).why);
+  G.craftRecipe('bat_nail');
+  check('合成後兩邊材料都扣', G.countOf('wood') === 0 && G.stashCount('wood') === 0 &&
+    G.countOf('scrap') === 0 && G.stashCount('scrap') === 0 && G.countOf('tape') === 0,
+    `${G.countOf('wood')}/${G.stashCount('wood')} ${G.countOf('scrap')}/${G.stashCount('scrap')}`);
+  check('成品進背包', G.countOf('bat_nail') === 1);
+
+  /* 背包滿、櫃子有空間 → 成品自動放櫃子（材料只吃掉部分堆疊，不會空出格子） */
+  S.bag.length = 0; S.stash.length = 0;
+  G.addItem('scrap', 5);
+  for (const id of ['can','bread','bar','bandage','pill','medkit','battery','circuit','antenna','bottle','cloth']) G.addItem(id, 1);
+  G.addToStash('wood', 2);
+  G.addToStash('tape', 1);
+  check('背包滿但櫃子有空間可合成', G.canCraft(nail).ok === true, G.canCraft(nail).why);
+  G.craftRecipe('bat_nail');
+  check('成品自動放入儲物櫃', G.countOf('bat_nail') === 0 && G.stashCount('bat_nail') === 1,
+    `${G.countOf('bat_nail')}/${G.stashCount('bat_nail')}`);
+  check('只吃掉部分堆疊，背包仍滿', G.countOf('scrap') === 3 && S.bag.length === 12,
+    `${G.countOf('scrap')}/${S.bag.length}`);
+
+  /* 背包與櫃子都滿（只吃掉部分堆疊）→ 拒絕、不扣料 */
+  S.bag.length = 0; S.stash.length = 0;
+  G.addItem('wood', 4); G.addItem('scrap', 5); G.addItem('tape', 4);
+  for (const id of ['can','bread','bar','bandage','pill','medkit','battery','circuit','antenna']) G.addItem(id, 1);
+  check('背包剛好 12 格', S.bag.length === 12, S.bag.length);
+  for (let i=0;i<24;i++) G.addToStash('machete', 1, 40);
+  check('櫃子剛好 24 格', S.stash.length === 24, S.stash.length);
+  const mach = G.RECIPES.find(r => r.id === 'machete');
+  const chkFull = G.canCraft(mach);
+  const bagBefore = JSON.stringify(S.bag);
+  G.craftRecipe('machete');
+  check('兩邊都滿時拒絕合成', chkFull.ok === false, chkFull.why);
+  check('拒絕時不扣材料', JSON.stringify(S.bag) === bagBefore);
+
+  /* 發射器：背包一定要留一格（材料全在櫃子，不會空出背包格） */
+  S.bag.length = 0; S.stash.length = 0;
+  for (const id of ['can','bread','bar','bandage','pill','medkit','bottle','cloth','scrap','wood','tape','machete']) G.addItem(id, 1);
+  G.addToStash('antenna', 1);
+  G.addToStash('circuit', 1);
+  G.addToStash('battery', 2);
+  G.addToStash('wire', 3);
+  G.learn('bp_radio');
+  const radio = G.RECIPES.find(r => r.id === 'radio');
+  const chkRadio = G.canCraft(radio);
+  check('滿包時不能做發射器（成品必須進背包）', chkRadio.ok === false, chkRadio.why);
+  check('櫃子裡的材料仍在', G.stashCount('antenna') === 1 && G.stashCount('circuit') === 1);
 }
 
 /* ---------------- summary ---------------- */
