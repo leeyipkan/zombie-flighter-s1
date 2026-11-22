@@ -513,6 +513,115 @@ reset();
   check('名字最多 8 字', G.sanitizeName('一二三四五六七八九十').length === 8, G.sanitizeName('一二三四五六七八九十'));
 }
 
+/* ---------------- 11. safehouse stash ---------------- */
+section('安全屋儲物櫃');
+G.clearSave();
+reset();
+{
+  const S = G.S;
+  const stash = [...G.MAP.props.values()].find(p => p.kind === 'stash');
+  check('安全屋有儲物櫃', !!stash);
+  const spot = stash && G.DIRS.map(([dx,dy]) => [stash.x+dx, stash.y+dy])
+    .find(([x,y]) => walkable(x,y));
+  check('儲物櫃可接近', !!spot, spot ? spot.join(',') : '');
+  check('初始容量 24', G.stashCap() === 24, G.stashCap());
+
+  S.bag.length = 0; S.stash.length = 0;
+  G.addItem('scrap', 3);
+  G.bagToStash(0, false);
+  check('點擊存入一個', G.countOf('scrap') === 2 && G.stashCount('scrap') === 1,
+    `${G.countOf('scrap')}/${G.stashCount('scrap')}`);
+  G.bagToStash(0, true);
+  check('Shift 整組存入', G.countOf('scrap') === 0 && G.stashCount('scrap') === 3,
+    `${G.countOf('scrap')}/${G.stashCount('scrap')}`);
+
+  const si = S.stash.findIndex(x => x.id === 'scrap');
+  G.stashToBag(si, false);
+  check('取回一個', G.countOf('scrap') === 1 && G.stashCount('scrap') === 2,
+    `${G.countOf('scrap')}/${G.stashCount('scrap')}`);
+
+  S.bag.length = 0; S.stash.length = 0;
+  S.bag.push({ id:'machete', n:1, dur:17 });
+  G.bagToStash(0, false);
+  check('裝備存入保留耐久', !!S.stash[0] && S.stash[0].id === 'machete' && S.stash[0].dur === 17,
+    JSON.stringify(S.stash[0]));
+  G.stashToBag(0, false);
+  check('裝備取回保留耐久', !!S.bag[0] && S.bag[0].id === 'machete' && S.bag[0].dur === 17,
+    JSON.stringify(S.bag[0]));
+
+  /* 背包滿時不能取回（需要新格子的裝備） */
+  S.bag.length = 0; S.stash.length = 0;
+  for (const id of ['wood','scrap','cloth','tape','wire','bottle','battery','circuit','antenna']) G.addItem(id,1);
+  G.addItem('can',1); G.addItem('bread',1); G.addItem('bar',1);
+  check('背包已滿', S.bag.length === 12, S.bag.length);
+  G.addToStash('machete', 1, 40);
+  const beforeBag = JSON.stringify(S.bag);
+  G.stashToBag(0, false);
+  check('背包滿時取回被拒絕', JSON.stringify(S.bag) === beforeBag && S.stash.length === 1,
+    S.stash.length);
+
+  /* 櫃子滿時不能存入 */
+  S.bag.length = 0; S.stash.length = 0;
+  for (let i=0;i<24;i++) G.addToStash('machete', 1, 40);
+  check('櫃子裝滿 24 格', S.stash.length === 24, S.stash.length);
+  G.addItem('can', 1);
+  G.bagToStash(0, false);
+  check('櫃子滿時存入被拒絕', G.countOf('can') === 1 && S.stash.length === 24, S.stash.length);
+
+  /* 發射器不能存 */
+  S.bag.length = 0; S.stash.length = 0;
+  G.addItem('radio', 1);
+  G.bagToStash(0, false);
+  check('發射器不能存入', G.countOf('radio') === 1 && S.stash.length === 0);
+
+  /* 擴建 */
+  S.bag.length = 0; S.stash.length = 0; S.stashLv = 1;
+  G.addItem('wood', 4); G.addItem('scrap', 3); G.addItem('tape', 2);
+  G.upgradeStash();
+  check('擴建到 Lv2 = 36 格', S.stashLv === 2 && G.stashCap() === 36, `${S.stashLv}/${G.stashCap()}`);
+  check('擴建扣掉材料', G.countOf('wood') === 0 && G.countOf('scrap') === 0 && G.countOf('tape') === 0);
+  S.bag.length = 0;
+  G.addItem('scrap', 6); G.addItem('wood', 4); G.addItem('tape', 3);
+  G.upgradeStash();
+  check('擴建到 Lv3 = 48 格', S.stashLv === 3 && G.stashCap() === 48, `${S.stashLv}/${G.stashCap()}`);
+  G.upgradeStash();
+  check('滿級後不能再擴建', S.stashLv === 3);
+
+  /* 材料放在櫃子裡也能用來擴建 */
+  S.bag.length = 0; S.stash.length = 0; S.stashLv = 1;
+  G.addToStash('wood', 4); G.addToStash('scrap', 3); G.addToStash('tape', 2);
+  G.upgradeStash();
+  check('櫃子裡的材料也能擴建', S.stashLv === 2 && G.stashCount('wood') === 0 && G.stashCount('scrap') === 0);
+
+  /* 存入全部材料 / 取出全部 */
+  S.bag.length = 0; S.stash.length = 0;
+  G.addItem('scrap', 2); G.addItem('wood', 1); G.addItem('can', 1);
+  G.depositAllMaterials();
+  check('存入全部材料只搬材料', G.countOf('scrap') === 0 && G.countOf('wood') === 0 &&
+    G.countOf('can') === 1 && S.stash.length === 2, `${G.countOf('scrap')}/${G.countOf('wood')}/${G.countOf('can')}`);
+  G.withdrawAll();
+  check('取出全部', S.stash.length === 0 && G.countOf('scrap') === 2 && G.countOf('wood') === 1);
+
+  /* 存檔往返 */
+  S.bag.length = 0; S.stash.length = 0; S.stashLv = 2;
+  G.addToStash('scrap', 5);
+  G.addToStash('machete', 1, 22);
+  G.saveGame(true);
+  const d = G.loadSave();
+  G.newGame(false, '别人');
+  G.continueGame(d);
+  check('讀檔還原儲物櫃', G.stashCount('scrap') === 5 && G.stashCap() === 36, `${G.stashCount('scrap')}/${G.stashCap()}`);
+  const sm = G.S.stash.find(x => x.id === 'machete');
+  check('讀檔還原櫃內裝備耐久', !!sm && sm.dur === 22, JSON.stringify(sm));
+
+  /* 互動與提示 */
+  if (stash) G.teleport(stash.x - 1, stash.y);
+  check('站在旁邊偵測到儲物櫃', G.nearStash() === true);
+  G.openStash();
+  check('可以打開儲物櫃面板', !document.getElementById('modal').classList.contains('hidden'));
+  G.closeModal();
+}
+
 /* ---------------- summary ---------------- */
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail){

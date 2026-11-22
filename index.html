@@ -150,6 +150,14 @@ kbd{font-family:Consolas,monospace;font-size:10.5px;background:#191d22;border:1p
   padding:7px 10px;font-size:14px;font-family:inherit;width:150px;outline:none;}
 .namebox input:focus{border-color:var(--amber);}
 .savehint{font-size:11px;color:#6f7278;}
+.stashgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.5fr);gap:14px;margin:12px 0;align-items:start;}
+.stash-panel{border:1px solid #262b32;background:#0e1114;border-radius:5px;padding:9px 10px;}
+.stash-head{display:flex;justify-content:space-between;align-items:center;font-size:11px;letter-spacing:.14em;color:#c79a4e;margin-bottom:8px;}
+.stash-slots{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;}
+.stash-slots.wide{grid-template-columns:repeat(8,1fr);}
+.stash-tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px;}
+.stash-tools .btn{padding:6px 12px;font-size:12px;}
+.stash-tools .savehint{margin-left:auto;}
 .recipes{display:flex;flex-direction:column;gap:6px;}
 .rgroup{font-size:10px;letter-spacing:.2em;color:#c79a4e;margin:8px 0 1px;text-transform:uppercase;}
 .rgroup:first-child{margin-top:2px;}
@@ -188,6 +196,7 @@ kbd{font-family:Consolas,monospace;font-size:10.5px;background:#191d22;border:1p
   main{grid-template-columns:1fr;overflow:visible;}
   #stage{order:1;} #side{order:2;max-height:none;}
   .mcols{grid-template-columns:1fr;}
+  .stashgrid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -263,6 +272,11 @@ kbd{font-family:Consolas,monospace;font-size:10.5px;background:#191d22;border:1p
 const TILE = 24, W = 64, H = 40;
 const VIEW_W = 44 * TILE, VIEW_H = 25 * TILE;   // 視窗 1056x600；地圖 1536x960
 const CAP = 12;
+const STASH_CAPS = [24, 36, 48];
+const STASH_UPGRADES = [null,
+  { wood:4, scrap:3, tape:2 },
+  { scrap:6, wood:4, tape:3 },
+];
 const HOLDOUT_TURNS = 10;
 
 const T = { STREET:0, SIDEWALK:1, GRASS:2, FLOOR:3, WALL:4, DOOR:5, BARRICADE:6 };
@@ -375,7 +389,7 @@ const LOOT = {
   street:    [{id:'scrap',w:2,min:1,max:2},{id:'cloth',w:2,min:1,max:2},{id:'bottle',w:2,min:1,max:2},{id:'tape',w:1,min:1,max:1},{id:'can',w:1,min:1,max:1}],
 };
 
-const KIND_LABEL = { crate:'木箱', shelf:'貨架', locker:'鐵櫃', fridge:'冰櫃', cabinet:'櫃子', dumpster:'垃圾箱', workbench:'工作臺', car:'廢車', tree:'枯樹', pump:'加油機', bed:'舊床' };
+const KIND_LABEL = { crate:'木箱', shelf:'貨架', locker:'鐵櫃', fridge:'冰櫃', cabinet:'櫃子', dumpster:'垃圾箱', workbench:'工作臺', stash:'儲物櫃', car:'廢車', tree:'枯樹', pump:'加油機', bed:'舊床' };
 
 /* =========================================================================
    2. 地圖
@@ -512,6 +526,7 @@ function buildMap(){
 
   /* 安全屋 */
   prop(3,3,'workbench',{ label:'工作臺' });
+  prop(9,4,'stash',{ label:'儲物櫃' });
   box('crate', 11,2, [{id:'wood',n:2},{id:'scrap',n:2},{id:'tape',n:1}]);
   box('crate', 2,8,  [{id:'cloth',n:2},{id:'bread',n:1},{id:'scrap',n:1}]);
   box('shelf', 11,8, rollLoot('safehouse',3));
@@ -659,7 +674,7 @@ function newGame(showIntro, name){
     bag: [], weapon: { id:'bat_wood', dur:ITEM.bat_wood.dur }, armor: null,
     zombies: [], corpses: [], log: [], kills: 0, crafted: 0, searches: 0,
     phase: 'explore', holdoutStart: 0, radioBuilt: false, bp: {}, changes: [],
-    started: false, muted: MUTED,
+    started: false, muted: MUTED, stash: [], stashLv: 1,
   };
   addItem('can', 1);
   for (const [type,x,y] of INIT_ZOMBIES) spawnZombie(type, x, y);
@@ -693,6 +708,7 @@ function saveGame(silent){
       v: SAVE_VERSION, ts: Date.now(),
       name: S.name, turn: S.turn, hp: S.hp, x: S.x, y: S.y, dir: S.dir,
       bag: S.bag, weapon: S.weapon, armor: S.armor,
+      stash: S.stash, stashLv: S.stashLv,
       zombies: S.zombies.map(z => ({
         type:z.type, x:z.x, y:z.y, hp:z.hp, maxHp:z.maxHp, atk:z.atk,
         speed:z.speed, sense:z.sense, size:z.size, range:z.range,
@@ -750,6 +766,12 @@ function continueGame(d){
     ? { id:d.weapon.id, dur:Math.max(1, d.weapon.dur|0) } : null;
   S.armor = (d.armor && ITEM[d.armor.id] && ITEM[d.armor.id].type === 'armor')
     ? { id:d.armor.id, dur:Math.max(1, d.armor.dur|0) } : null;
+  S.stash = Array.isArray(d.stash)
+    ? d.stash.filter(it => it && ITEM[it.id] && it.n > 0).map(it => ({
+        id:it.id, n:Math.min(99, it.n|0), ...(it.dur ? { dur:it.dur|0 } : {}),
+      }))
+    : [];
+  S.stashLv = clamp((d.stashLv | 0) || 1, 1, STASH_CAPS.length);
   S.kills = d.kills | 0;
   S.crafted = d.crafted | 0;
   S.searches = d.searches | 0;
@@ -1052,6 +1074,18 @@ function drawProp(p){
       ctx.fillStyle = 'rgba(224,161,60,.10)';
       ctx.fillRect(px+1,py+1,22,22);
     }
+  } else if (k === 'stash'){
+    /* 儲物櫃：兩門鐵櫃，門上貼一張黃標 */
+    ctx.fillStyle = '#2c343c'; ctx.fillRect(px+2,py+1,20,22);
+    ctx.fillStyle = '#48545f'; ctx.fillRect(px+3,py+2,8,20);
+    ctx.fillStyle = '#505d69'; ctx.fillRect(px+12,py+2,9,20);
+    ctx.fillStyle = '#1b2127'; ctx.fillRect(px+11,py+2,1,20);
+    ctx.fillStyle = '#c9ced6'; ctx.fillRect(px+9,py+11,2,4);
+    ctx.fillRect(px+13,py+11,2,4);
+    ctx.fillStyle = '#d8c27a'; ctx.fillRect(px+14,py+5,5,4);
+    ctx.fillStyle = '#3a3020'; ctx.fillRect(px+15,py+6,3,1);
+    ctx.fillStyle = 'rgba(224,161,60,.10)';
+    ctx.fillRect(px+1,py+1,22,22);
   } else if (k === 'car'){
     ctx.fillStyle = p.color || '#4a4a4a';
     rr(px+2,py+5,20,14,3); ctx.fill();
@@ -1447,6 +1481,207 @@ function eatBest(){
 }
 
 /* =========================================================================
+   5b. 安全屋儲物櫃
+   ========================================================================= */
+function stashCap(){
+  const lv = clamp(S.stashLv | 0, 1, STASH_CAPS.length);
+  return STASH_CAPS[lv - 1];
+}
+function stashCount(id){
+  let n = 0;
+  for (const s of S.stash) if (s.id === id) n += s.n;
+  return n;
+}
+function addToStash(id, n, dur){
+  const d = ITEM[id];
+  if (!d) return 0;
+  if (isStack(d)){
+    const slot = S.stash.find(s => s.id === id);
+    if (slot){ slot.n += n; return n; }
+    if (S.stash.length < stashCap()){ S.stash.push({ id, n }); return n; }
+    return 0;
+  }
+  if (S.stash.length < stashCap()){
+    S.stash.push({ id, n:1, dur: dur === undefined ? d.dur : dur });
+    return 1;
+  }
+  return 0;
+}
+function countAny(id){ return countOf(id) + stashCount(id); }
+function consumeAny(id, n){
+  let left = n;
+  const fromBag = Math.min(left, countOf(id));
+  if (fromBag > 0){ removeItem(id, fromBag); left -= fromBag; }
+  for (let i = S.stash.length - 1; i >= 0 && left > 0; i--){
+    const s = S.stash[i];
+    if (s.id !== id) continue;
+    const take = Math.min(s.n, left);
+    s.n -= take;
+    left -= take;
+    if (s.n <= 0) S.stash.splice(i, 1);
+  }
+  return left === 0;
+}
+
+function bagToStash(i, whole){
+  if (!S || !S.started || !alive()) return;
+  const s = S.bag[i];
+  if (!s) return;
+  if (s.id === 'radio'){ say('發射器要留在身上，不能收進櫃子。','warn'); sfx('nope'); return; }
+  const d = ITEM[s.id];
+  const want = whole && isStack(d) ? s.n : 1;
+  let moved = 0;
+  for (let k = 0; k < want; k++){
+    if (addToStash(s.id, 1, s.dur) === 0) break;
+    moved++;
+  }
+  if (!moved){ say('儲物櫃滿了，先擴建或取出一些東西。','warn'); sfx('nope'); return; }
+  s.n -= moved;
+  if (s.n <= 0) S.bag.splice(i, 1);
+  say(`存入${d.name}${moved > 1 ? ' ×' + moved : ''}。`, 'info');
+  sfx('pickup');
+  saveGame(true);
+  renderStash();
+  renderUI();
+}
+
+function stashToBag(i, whole){
+  if (!S || !S.started || !alive()) return;
+  const s = S.stash[i];
+  if (!s) return;
+  const d = ITEM[s.id];
+  if (!hasSpaceFor(s.id)){ say('背包滿了，先丟點東西或用掉材料。','warn'); sfx('nope'); return; }
+  const want = whole && isStack(d) ? s.n : 1;
+  let moved = 0;
+  for (let k = 0; k < want; k++){
+    if (addItem(s.id, 1, s.dur) === 0) break;
+    moved++;
+  }
+  if (!moved){ say('背包滿了。','warn'); sfx('nope'); return; }
+  s.n -= moved;
+  if (s.n <= 0) S.stash.splice(i, 1);
+  say(`取出${d.name}${moved > 1 ? ' ×' + moved : ''}。`, 'info');
+  sfx('pickup');
+  saveGame(true);
+  renderStash();
+  renderUI();
+}
+
+function depositAllMaterials(){
+  let moved = 0;
+  for (let i = S.bag.length - 1; i >= 0; i--){
+    const s = S.bag[i];
+    if (!s) continue;
+    const d = ITEM[s.id];
+    if (!d || d.type !== 'mat') continue;
+    const n = s.n;
+    for (let k = 0; k < n; k++){
+      if (addToStash(s.id, 1) === 0) break;
+      s.n--; moved++;
+    }
+    if (s.n <= 0) S.bag.splice(i, 1);
+  }
+  say(moved ? `存入 ${moved} 件材料。` : '背包裡沒有材料可以存。', moved ? 'good' : 'warn');
+  if (moved) sfx('pickup'); else sfx('nope');
+  saveGame(true); renderStash(); renderUI();
+}
+
+function withdrawAll(){
+  let moved = 0;
+  for (let i = S.stash.length - 1; i >= 0; i--){
+    const s = S.stash[i];
+    if (!s) continue;
+    const n = s.n;
+    for (let k = 0; k < n; k++){
+      if (addItem(s.id, 1, s.dur) === 0) break;
+      s.n--; moved++;
+    }
+    if (s.n <= 0) S.stash.splice(i, 1);
+  }
+  say(moved ? `取出 ${moved} 件物品。` : '儲物櫃是空的。', moved ? 'good' : 'warn');
+  if (moved) sfx('pickup'); else sfx('nope');
+  saveGame(true); renderStash(); renderUI();
+}
+
+function upgradeStash(){
+  const lv = S.stashLv | 0;
+  if (lv >= STASH_CAPS.length){ say('儲物櫃已經是最大容量。','warn'); return; }
+  const cost = STASH_UPGRADES[lv];
+  const need = Object.entries(cost);
+  const missing = need.filter(([id, n]) => countAny(id) < n);
+  if (missing.length){
+    say('材料不足：' + missing.map(([id, n]) => `${ITEM[id].name} ${countAny(id)}/${n}`).join('、'), 'warn');
+    sfx('nope');
+    return;
+  }
+  for (const [id, n] of need) consumeAny(id, n);
+  S.stashLv = lv + 1;
+  say(`儲物櫃擴建到 ${stashCap()} 格。`, 'good');
+  sfx('craft');
+  saveGame(true); renderStash(); renderUI();
+}
+
+function stashSlotMarkup(s, attr){
+  if (!s) return '<div class="slot empty"></div>';
+  const d = ITEM[s.id];
+  const isGear = d.type === 'weapon' || d.type === 'armor';
+  const dur = isGear ? (s.dur === undefined ? d.dur : s.dur) : 0;
+  const cnt = isStack(d) && s.n > 1 ? `<b class="cnt">${s.n}</b>` : '';
+  const durbar = isGear ? `<i class="durbar"><b style="width:${clamp(dur / d.dur, 0, 1) * 100}%"></b></i>` : '';
+  const tip = isGear ? `${d.name} · 耐久 ${dur}/${d.dur}` : d.name;
+  return `<div class="slot" ${attr} title="${tip}"><span class="g" style="color:${d.color}">${d.glyph}</span>${cnt}${durbar}</div>`;
+}
+
+function renderStash(){
+  if (!S) return;
+  const cap = stashCap();
+  const lv = S.stashLv | 0;
+  const bagSlots = Array.from({ length: CAP }, (_, i) =>
+    stashSlotMarkup(S.bag[i], `data-stash-bag="${i}"`)).join('');
+  const stashSlots = Array.from({ length: cap }, (_, i) =>
+    stashSlotMarkup(S.stash[i], `data-stash-item="${i}"`)).join('');
+  const next = lv < STASH_CAPS.length ? STASH_UPGRADES[lv] : null;
+  const upOk = !!next && Object.entries(next).every(([id, n]) => countAny(id) >= n);
+  const upHtml = next
+    ? `<button class="btn" data-act="stash-upgrade" ${upOk ? '' : 'disabled'}>擴建到 Lv.${lv + 1}（${Object.entries(next).map(([id, n]) => `${ITEM[id].name} ${countAny(id)}/${n}`).join(' · ')}）</button>`
+    : `<span class="badge">已達最大容量 ${cap} 格</span>`;
+  openModal(`<div class="modal-card" style="width:min(920px,100%)">
+    <div class="mc-head"><div><h2>儲物櫃</h2><p>安全屋 · 背包放不下的東西先放這裡</p></div><button class="mc-x" data-act="close">×</button></div>
+    <div class="stashgrid">
+      <section class="stash-panel">
+        <div class="stash-head"><span>背包</span><span class="dim">${S.bag.length} / ${CAP}</span></div>
+        <div class="stash-slots">${bagSlots}</div>
+      </section>
+      <section class="stash-panel">
+        <div class="stash-head"><span>儲物櫃 · Lv.${lv}</span><span class="dim">${S.stash.length} / ${cap}</span></div>
+        <div class="stash-slots wide">${stashSlots}</div>
+      </section>
+    </div>
+    <div class="stash-tools">
+      <button class="btn" data-act="stash-deposit-all">存入全部材料</button>
+      <button class="btn" data-act="stash-withdraw-all">取出全部</button>
+      ${upHtml}
+      <span class="savehint">點擊移動 1 個 · Shift+點擊整組</span>
+    </div>
+  </div>`, false);
+}
+
+function openStash(){
+  if (!S || !S.started || !alive()) return;
+  ensureAudio();
+  renderStash();
+  sfx('equip');
+}
+
+function nearStash(){
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++){
+    const p = propAt(S.x + dx, S.y + dy);
+    if (p && p.kind === 'stash') return true;
+  }
+  return false;
+}
+
+/* =========================================================================
    6. 日誌與音效
    ========================================================================= */
 function say(text, kind){
@@ -1670,6 +1905,7 @@ function nearWorkbench(){
 function interact(){
   if (!S || !S.started || !alive() || modalOpen) return;
   if (nearWorkbench()){ openCraft(); return; }
+  if (nearStash()){ openStash(); return; }
   const p = facingProp();
   if (p && p.searchable){ searchContainer(p); return; }
   if (terrAt(S.x + S.dir.x, S.y + S.dir.y) === T.BARRICADE){
@@ -2163,6 +2399,7 @@ function computeHint(){
       Math.abs(z.x - S.x) + Math.abs(z.y - S.y) <= 4)){
     return { text:'牠們在門外徘徊 —— 啟動訊號之前，安全屋是安全的。', alert:false };
   }
+  if (nearStash()) return { text:'按 E 打開儲物櫃：把多餘的零件存起來，擴建可增加格數。', alert:false };
   if (nearWorkbench()) return { text:'按 E 打開工作臺：武器、護甲、急救包、訊號發射器。', alert:false };
   const p = facingProp();
   if (p && p.searchable){
@@ -2233,6 +2470,7 @@ function showIntroModal(){
         <b>F</b> 吃下最好的食物。<br>
         <b>空格</b> 原地等一回合。<br>
         點擊背包裡的物品可以食用或裝備。<br>
+        <b>安全屋有儲物櫃</b>，背包放不下的零件可以先存起來，容量還能擴建。<br>
         <b>安全屋在啟動訊號前是安全區</b>，喪屍只會在門外徘徊。</p>
       </div>
       <div class="mcol">
@@ -2273,7 +2511,7 @@ function showHelp(){
       </div>
       <div class="mcol">
         <h3>提示</h3>
-        <p>背包只有 12 格，裝不下就回工作臺把材料用掉。<br>
+        <p>背包只有 12 格；安全屋的<b>儲物櫃</b>可以存多餘零件（24 格起，可擴建到 36、48 格）。<br>
         生命值高時不必急著吃東西；低血量進食要花一回合，先退到安全位置。<br>
         製作不消耗回合，但吃東西會。<br>
         每次行動後自動存檔；標題畫面可以「繼續進度」，右上角 <b>存</b> 可手動保存。<br>
@@ -2409,6 +2647,10 @@ $('bagGrid').addEventListener('click', (e) => {
 
 $('modal').addEventListener('click', (e) => {
   if (e.target.id === 'modal' && !modalLock){ closeModal(); return; }
+  const bagSlot = e.target.closest('[data-stash-bag]');
+  if (bagSlot){ bagToStash(+bagSlot.dataset.stashBag, e.shiftKey); return; }
+  const stashSlot = e.target.closest('[data-stash-item]');
+  if (stashSlot){ stashToBag(+stashSlot.dataset.stashItem, e.shiftKey); return; }
   const btn = e.target.closest('[data-act]');
   if (!btn) return;
   const act = btn.dataset.act;
@@ -2427,6 +2669,9 @@ $('modal').addEventListener('click', (e) => {
   else if (act === 'start') startHoldout();
   else if (act === 'restart') restart();
   else if (act === 'help') showHelp();
+  else if (act === 'stash-deposit-all') depositAllMaterials();
+  else if (act === 'stash-withdraw-all') withdrawAll();
+  else if (act === 'stash-upgrade') upgradeStash();
 });
 
 $('helpBtn').addEventListener('click', () => { ensureAudio(); showHelp(); });
@@ -2470,6 +2715,8 @@ window.__G = {
   craftRecipe, canCraft, startHoldout, eatBest, useBag, dropItem,
   addItem, removeItem, countOf, hasItem, say, learn,
   saveGame, loadSave, clearSave, continueGame, beginRun, sanitizeName, SAVE_KEY,
+  stashCap, stashCount, addToStash, bagToStash, stashToBag, depositAllMaterials,
+  withdrawAll, upgradeStash, renderStash, openStash, nearStash, STASH_CAPS,
   nextStep, blocked, propAt, terrAt, zombieAt, zoneAt,
   searchContainer, openCraft, showHelp, closeModal,
   teleport(x,y){ S.x = x; S.y = y; refresh(); },
